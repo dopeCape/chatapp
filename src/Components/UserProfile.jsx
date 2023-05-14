@@ -91,8 +91,6 @@ export default function UserProfile({
       let to = msg.data;
 
       setter(to);
-
-      reRendere.current = reRendere.current + 1;
     });
     my_channel.subscribe("unblock-request", (msg) => {
       let to = msg.data;
@@ -190,19 +188,21 @@ export default function UserProfile({
     try {
       // eslint-disable-next-line react-hooks/rules-of-hooks
 
-      reqChannel.publish("send-request", {
-        from: me.userId,
-        to: user.userId,
-      });
-      setter({
-        ...me,
-        friends: [
-          { ...user, pending: me.userId, status: "pending" },
+      if (user.pending !== me.userId) {
+        reqChannel.publish("send-request", {
+          from: me.userId,
+          to: user.userId,
+        });
+        setter({
+          ...me,
+          friends: [
+            { ...user, pending: me.userId, status: "pending" },
 
-          ...me.friends,
-        ],
-      });
-      user.pending = me.userId;
+            ...me.friends,
+          ],
+        });
+        user.pending = me.userId;
+      }
 
       reRendere.current = reRendere.current + 1;
     } catch (error) {
