@@ -13,6 +13,7 @@ export default function ChatSection({ me, msges, msgSetter, user }) {
   const [my_channel, ably] = useChannel(me.userId, (x) => { });
 
   my_channel.subscribe("new-msg", (data) => {
+    console.log(data.data);
     msges.forEach((x) => {
       if (x.chatId === data.data.chatId) {
         x.msges = data.data.msges;
@@ -42,11 +43,14 @@ export default function ChatSection({ me, msges, msgSetter, user }) {
     });
   });
   const changeChat = () => {
-    msges.forEach((x) => {
-      if (x.chatId === user.chatId) {
-        setChat(x.msges);
-      }
-    });
+    console.log(msges);
+    if (msges.length > 0) {
+      msges.forEach((x) => {
+        if (x.chatId === user.chatId) {
+          setChat(x.msges);
+        }
+      });
+    }
   };
   useEffect(() => {
     changeChat();
@@ -76,13 +80,16 @@ export default function ChatSection({ me, msges, msgSetter, user }) {
     }
   };
   const handleSendMsg = async () => {
-    server_channel.publish("new-msg", {
-      msg: chatRef.current.value,
-      from: me.userId,
-      to: user.userId,
-      chatId: user.chatId,
-    });
-    chatRef.current.value = "";
+    if (chatRef.current.value !== "") {
+      server_channel.publish("new-msg", {
+        msg: chatRef.current.value,
+        from: me.userId,
+        to: user.userId,
+        chatId: user.chatId,
+      });
+      chatRef.current.value = "";
+    }
+    console.log(user.chatId);
   };
 
   // useEffect(() => {
@@ -165,7 +172,8 @@ export default function ChatSection({ me, msges, msgSetter, user }) {
       ) : (
         ""
       )}
-      {user.pending === "accepted" && user.blocked === (undefined || "") ? (
+      {user.pending === "accepted" &&
+        (user.blocked === undefined || user.blocked === "") ? (
         <div className="flex flex-wrap w-full mb-5 sticky top-[90%]">
           <input
             className="w-[80%] bg-black text-white border-gray_i_like border-[2px] rounded-lg p-4 ml-5 mt-2  outline-none  "

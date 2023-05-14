@@ -1,8 +1,6 @@
 import axios from "axios";
-import dotenv from "dotenv";
-dotenv.config();
 
-let url = process.env.URL;
+let url = "https://backend-chatapp-hwhs.onrender.com";
 const instance = axios.create({
   baseURL: url,
 });

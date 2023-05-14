@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import React, { useEffect, useState } from "react";
 import { useChannel } from "@ably-labs/react-hooks";
+import { v4 } from "uuid";
 
 import { getAuth, signOut } from "firebase/auth";
 import { auth } from "../firebase";
@@ -12,11 +13,14 @@ export default function UserProfile({
   setter,
   chatSec,
   reRendere,
+  msgSetter,
+  msges,
 }) {
   const [profile, setProfile] = useState(user);
   const handleLogout = () => {
     setter(null);
     chatSec(null);
+    msgSetter([]);
 
     signOut(auth);
   };
@@ -68,7 +72,9 @@ export default function UserProfile({
     });
 
     my_channel.subscribe("accept-request", (msg) => {
-      let to = msg.data;
+      let to = msg.data.from_user;
+      let chatId = msg.data.chatId;
+      msgSetter([...msges, { chatId: chatId, msges: [] }]);
 
       setter(to);
 
@@ -231,22 +237,29 @@ export default function UserProfile({
 
   const acceptRequest = async () => {
     try {
+      let chatId = v4();
+      console.log(chatId);
       reqChannel.publish("accept-request", {
         from: user.userId,
         to: me.userId,
+        chatId: chatId,
       });
+      console.log(chatId);
       let index;
       me.friends.forEach((x, i) => {
         if (x.userId === user.userId) {
           x.pending = "accepted";
+          x.chatId = chatId;
           index = i;
-          console.log(x);
+
           chatSec(x);
         }
       });
       me.friends = array_move(me.friends, index, 0);
 
       setter(me);
+
+      msgSetter([...msges, { chatId: chatId, msges: [] }]);
 
       reRendere.current = reRendere.current + 1;
     } catch (error) {

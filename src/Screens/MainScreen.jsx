@@ -88,6 +88,8 @@ export default function MainScreen() {
                 reRendere={forceRef}
                 user={selected}
                 me={ruser}
+                msges={msages}
+                msgSetter={setMsages}
                 setter={setUser}
                 chatSec={setSelected}
               />
@@ -97,6 +99,7 @@ export default function MainScreen() {
                 type="me"
                 user={ruser}
                 setter={setUser}
+                msgSetter={setMsages}
                 chatSec={setSelected}
               />
             </div>
