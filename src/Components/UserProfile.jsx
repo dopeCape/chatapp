@@ -81,19 +81,34 @@ export default function UserProfile({
       reRendere.current = reRendere.current + 1;
     });
     my_channel.subscribe("reject-request", (msg) => {
-      let to = msg.data;
+      console.log(msg.data);
+      let to = msg.data.from_user;
+
+      let from = msg.data.from;
+      if (user.userId === from) {
+        user.pending = "rejected";
+      }
 
       setter(to);
 
       reRendere.current = reRendere.current + 1;
     });
     my_channel.subscribe("block-request", (msg) => {
-      let to = msg.data;
+      let to = msg.data.to_user;
+      let from = msg.data.from;
+      if (user.userId === from) {
+        user.blocked = from;
+      }
 
       setter(to);
     });
     my_channel.subscribe("unblock-request", (msg) => {
-      let to = msg.data;
+      let to = msg.data.to_user;
+
+      let from = msg.data.from;
+      if (user.userId === from) {
+        user.blocked = "unblocked";
+      }
 
       setter(to);
 
@@ -116,13 +131,14 @@ export default function UserProfile({
       let index;
       me.friends.forEach((x, i) => {
         if (x.userId === user.userId) {
+          user.blocked = "unblocked";
           index = i;
-          console.log(x);
 
           chatSec(x);
         }
       });
 
+      me.friends = array_move(me.friends, index, 0);
       setter(me);
 
       reRendere.current = reRendere.current + 1;
@@ -137,10 +153,12 @@ export default function UserProfile({
         from: me.userId,
         to: user.userId,
       });
+      let index;
 
       me.friends.forEach((x, i) => {
         if (x.userId === user.userId) {
           x.blocked = me.userId;
+          index = i;
 
           console.log(x);
 
@@ -148,6 +166,7 @@ export default function UserProfile({
         }
       });
 
+      me.friends = array_move(me.friends, index, 0);
       setter(me);
 
       reRendere.current = reRendere.current + 1;
@@ -168,6 +187,7 @@ export default function UserProfile({
           x.pending = "";
           user.pending = "";
           user.blocked = "";
+          index = i;
 
           chatSec(x);
         }
@@ -212,7 +232,7 @@ export default function UserProfile({
 
   const rejectRequest = async () => {
     try {
-      reqChannel.publish("accept-request", {
+      reqChannel.publish("reject-request", {
         from: user.userId,
         to: me.userId,
       });
@@ -341,7 +361,7 @@ export default function UserProfile({
                 <div className="text-white text-[20px]  mt-3 ml-5">
                   Not a Friend
                 </div>
-              ) : user.blocked === "" ? (
+              ) : user.blocked === "unblocked" ? (
                 <div className="text-green text-[20px]  mt-3 ml-5">Friend</div>
               ) : (
                 <div className="text-white text-[20px]  mt-3 ml-5">
@@ -380,7 +400,14 @@ export default function UserProfile({
                 UnBlock
               </button>
             </div>
-          ) : user.pending === "accepted" ? (
+          ) : user.blocked === user.userId ? (
+            <button
+              className="bg-gray-400 p-3 w-[35%] rounded-lg hover:bg-white mt-10 ml-5 "
+              onClick={removeRequest}
+            >
+              Unfriend
+            </button>
+          ) : user.pending === "accepted" || user.blocked === "unblocked" ? (
             <div className="flex flex-wrap justify-around mt-10">
               <button
                 className="bg-gray-400 p-3 w-[35%] rounded-lg hover:bg-white "
@@ -395,14 +422,9 @@ export default function UserProfile({
                 Block
               </button>
             </div>
-          ) : user.blocked === user.userId ? (
-            <button
-              className="bg-gray-400 p-3 w-[35%] rounded-lg hover:bg-white "
-              onClick={removeRequest}
-            >
-              Unfriend
-            </button>
           ) : user.pending === me.userId ? (
+            ""
+          ) : user.pending === "rejected" ? (
             ""
           ) : (
             <button
