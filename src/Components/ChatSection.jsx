@@ -1,24 +1,51 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 /* eslint-disable no-unused-vars */
 import React, { useEffect, useRef, useState } from "react";
-import ScrollableFeed from "react-scrollable-feed";
+
 import { useChannel } from "@ably-labs/react-hooks";
 import { instance } from "../axios";
 
-export default function ChatSection({ me, msges, msgSetter, user }) {
+export default function ChatSection({
+  me,
+  msges,
+  msgSetter,
+  user,
+  userSetter,
+}) {
   const [chat, setChat] = useState([]);
   const screollRef = useRef();
   const chatRef = useRef();
 
   const [my_channel, ably] = useChannel(me.userId, (x) => { });
+  function array_move(arr, old_index, new_index) {
+    if (new_index >= arr.length) {
+      var k = new_index - arr.length + 1;
+      while (k--) {
+        arr.push(undefined);
+      }
+    }
+    arr.splice(new_index, 0, arr.splice(old_index, 1)[0]);
+    return arr; // for testing
+  }
 
   my_channel.subscribe("new-msg", (data) => {
     console.log(data.data);
+    let chatId = data.data.chatId;
     msges.forEach((x) => {
-      if (x.chatId === data.data.chatId) {
+      if (x.chatId === chatId) {
         x.msges = data.data.msges;
       }
     });
+    let index;
+    me.friends.forEach((x, i) => {
+      if (x.chatId === chatId) {
+        index = i;
+      }
+      console.log(chatId);
+    });
+    me.friends = array_move(me.friends, index, 0);
+    userSetter(me);
+
     msgSetter(msges);
 
     changeChat();

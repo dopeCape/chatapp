@@ -77,6 +77,7 @@ export default function MainScreen() {
                 me={ruser}
                 msges={msages}
                 msgSetter={setMsages}
+                userSetter={setUser}
               />
             </div>
           ) : (
