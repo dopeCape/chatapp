@@ -10,8 +10,9 @@ import {
   getAuth,
 } from "firebase/auth";
 import { instance } from "../axios";
+import { useUserStore } from "../Stores/MainStore";
 
-function LoginScreen({ setter }) {
+function LoginScreen() {
   const [login, setLogin] = useState(true);
   const [error, setError] = useState("");
   const userRef = useRef();
@@ -19,6 +20,8 @@ function LoginScreen({ setter }) {
   const retypePassRef = useRef();
 
   const emailRef = useRef();
+
+  const updateUser = useUserStore((state) => state.updateUserState);
   let provide = new GoogleAuthProvider();
 
   const handleGauthLgin = () => {
@@ -28,14 +31,13 @@ function LoginScreen({ setter }) {
 
         if (user.providerId === "google.com") {
           user_ = {
-            userId: user.user.uid,
+            fireBaseid: user.user.uid,
             email: user.user.email,
-            userName: user.user.displayName,
+            name: user.user.displayName,
             profilePic: user.user.photoURL,
           };
         }
         try {
-          localStorage.setItem("token", user.user.accessToken);
           let res = await instance.post(
             "/user/gauth",
             {
@@ -48,7 +50,8 @@ function LoginScreen({ setter }) {
             }
           );
 
-          setter(null);
+          localStorage.setItem("token", user.user.accessToken);
+          updateUser(null);
         } catch (error) {
           console.error(error);
         }
@@ -59,80 +62,83 @@ function LoginScreen({ setter }) {
     setError("");
     const email = emailRef.current.value;
     const rePass = retypePassRef.current.value;
-    const username = userRef.current.value;
-
     const password = passRef.current.value;
-
     try {
-      let username_ = await instance.post("/user/chelck", {
-        userName: username,
+      let invite = await instance.post("/user/chelckinvite", {
+        email: email,
       });
-
-      if (username_.data.userName !== undefined) {
-        setError("username already used ");
-        userRef.current.value = "";
-      } else {
-        if (rePass === password) {
-          const auth = getAuth();
-          createUserWithEmailAndPassword(auth, email, password)
-            .then(async (userCredential) => {
-              // Signed in
-              const user = userCredential.user;
-              let user_;
-
-              let profilePic = Avatar.gravatarUrl({
-                initials: user?.userName,
-              });
-              if (user.providerId === "firebase") {
-                user_ = {
-                  userId: user.uid,
-                  email: user.email,
-                  userName: userRef.current.value,
-                  profilePic: profilePic,
-                };
-              }
-              try {
-                let res = await instance.post(
-                  "/user",
-                  {
-                    ...user_,
-                  },
-                  {
-                    headers: {
-                      authorization: `Bearer ${userCredential.user.accessToken}`,
-                    },
-                  }
-                );
-                localStorage.setItem("token", userCredential.user.accessToken);
-                setter(null);
-              } catch (error) {
-                console.error(error);
-              }
-
-              // ...
-            })
-            .catch((error) => {
-              const errorCode = error.code;
-              const errorMessage = error.message;
-              console.log(errorCode);
-              if (errorCode === "auth/email-already-in-use") {
-                setError("User already exists.Please Login.");
-              }
-              if (errorCode === "auth/missing-password") {
-                setError("Password cannot be empty.");
-              }
-              if (errorCode === "auth/invalid-email") {
-                setError("Invalid Email. ");
-              }
-              if (errorCode === "auth/weak-password") {
-                setError("Password has to be atleast 6 digits.");
-              }
-
-              // ..
-            });
+      if (rePass === password) {
+        if (invite.data.msg === "nope") {
+          setError("No invite found");
         } else {
-          setError("Passwords do not match");
+          try {
+            const auth = getAuth();
+            createUserWithEmailAndPassword(auth, email, password)
+              .then(async (userCredential) => {
+                // Signed in
+                //
+                const user = userCredential.user;
+                let user_;
+
+                let profilePic = Avatar.gravatarUrl({
+                  initials: user?.userName,
+                });
+                if (user.providerId === "firebase") {
+                  user_ = {
+                    fireBaseid: user.uid,
+                    email: user.email,
+                    name: userRef.current.value,
+                    profilePic: profilePic,
+                  };
+                }
+                try {
+                  let res = await instance.post(
+                    "/user",
+                    {
+                      ...user_,
+                    },
+                    {
+                      headers: {
+                        authorization: `Bearer ${userCredential.user.accessToken}`,
+                      },
+                    }
+                  );
+                  localStorage.setItem(
+                    "token",
+                    userCredential.user.accessToken
+                  );
+                  updateUser(null);
+                } catch (error) {
+                  console.error(error);
+                }
+
+                // ...
+              })
+              .catch((error) => {
+                const errorCode = error.code;
+                const errorMessage = error.message;
+                console.log(errorCode);
+                if (errorCode === "auth/email-already-in-use") {
+                  setError("User already exists.Please Login.");
+                }
+                if (errorCode === "auth/missing-password") {
+                  setError("Password cannot be empty.");
+                }
+                if (errorCode === "auth/invalid-email") {
+                  setError("Invalid Email. ");
+                }
+                if (errorCode === "auth/weak-password") {
+                  setError("Password has to be atleast 6 digits.");
+                }
+
+                // ..
+              });
+          } catch (error) {
+            console.log(error);
+          }
         }
+      } else {
+        setError("Passwords do not match");
       }
     } catch (error) {
       console.log(error);
@@ -149,7 +155,7 @@ function LoginScreen({ setter }) {
       .then((userCred) => {
         const user = userCred.user;
 
-        setter(null);
+        updateUser(null);
       })
       .catch((error) => {
         const errorCode = error.code;
@@ -169,7 +175,7 @@ function LoginScreen({ setter }) {
 
   return (
     <div className="w-screen h-screen bg-black_i_like flex flex-wrap justify-center content-center">
-      <div className="w-[30%] h-[60%] rounded-lg border-gray_i_like border-[2px] bg-black flex flex-col flex-wrap justify-center content-center">
+      <div className="w-[30%] h-[70%] rounded-lg border-gray_i_like border-[2px] bg-black flex flex-col flex-wrap justify-center content-center">
         {login ? null : (
           <input
             className="w-[50%]  p-3 text-white outline-none border-[2px] border-gray_i_like hover:border-white bg-black mb-5 mt-3 ml-5"
@@ -213,13 +219,6 @@ function LoginScreen({ setter }) {
               </button>
             </>
           )}
-
-          <button
-            className="text-gray-500 hover:text-white border-gray_i_like outline-none bg-black text-[40px] ml-5 mt-3  "
-            onClick={handleGauthLgin}
-          >
-            <i class="fa-brands fa-google"></i>
-          </button>
         </div>
         {login ? (
           <div className="text-gray-400 mt-3 text-[24px] ">
@@ -249,7 +248,7 @@ function LoginScreen({ setter }) {
           </div>
         )}
 
-        <div className="font-extrabold text-red-800 text-[20px] mt-5">
+        <div className="font-extrabold relative top-[5%] text-red-800 text-[20px] ">
           {error}
         </div>
       </div>

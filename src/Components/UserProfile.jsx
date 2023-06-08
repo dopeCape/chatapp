@@ -1,441 +1,317 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import React, { useEffect, useState } from "react";
-import { useChannel } from "@ably-labs/react-hooks";
-import { v4 } from "uuid";
+import React, { useEffect, useState } from 'react';
 
-import { getAuth, signOut } from "firebase/auth";
-import { auth } from "../firebase";
+import ReactPlayer from 'react-player';
+import { Checkbox } from '@mui/material';
+import { AvatarGroup } from '@mui/material';
+import { Avatar } from '@mui/material';
+import { useChannel } from '@ably-labs/react-hooks';
+import {
+  useChatStore,
+  useGroupChatStore,
+  useSelectedStore,
+  useUserStore,
+  useWorkSpaceStore
+} from '../Stores/MainStore';
+import Popup from 'reactjs-popup';
+import { instance } from '../axios';
 
-export default function UserProfile({
-  type,
-  me,
-  user,
-  setter,
-  chatSec,
-  reRendere,
-  msgSetter,
-  msges,
-}) {
-  const [profile, setProfile] = useState(user);
-  const handleLogout = () => {
-    setter(null);
-    chatSec(null);
-    msgSetter([]);
+export default function UserProfile() {
+  const me = useUserStore(state => state.user);
+  let chats = useChatStore(state => state.chats);
+  let groupChat = useGroupChatStore(state => state.chats);
 
-    signOut(auth);
-  };
+  let workspace = useWorkSpaceStore(state => state.workspace);
+  const user = useSelectedStore(state => state.user);
+
+  const setter = useUserStore(state => state.updateUserState);
+
+  const [loading, setLoading] = useState(false);
+  const [media, setMedia] = useState([]);
+  const [renderMedia, setRenderMedia] = useState([]);
   useEffect(() => {
-    if (type === "me") {
-      me?.friends?.forEach((x) => {
-        console.log(x);
-        if (x.pending !== "accepted") {
-          setFriendData({
-            ...friendData,
-            pending: friendData.pending + 1,
-          });
-        }
-        if (x.blocked !== "" || x.blocked !== undefined) {
-          setFriendData({
-            ...friendData,
-            blocked: friendData.blocked + 1,
-          });
-        }
-        if (x.pending === "accepted") {
-          console.log("huh?");
-          setFriendData({
-            ...friendData,
-            friend: friendData.friend + 1,
-          });
+    let y = [];
+    console.log(me);
+    if (user.name) {
+      let x = user.msges.filter(msg => {
+        return msg.type !== 'CMD' && msg.type !== 'MSG';
+      });
+      setMedia(x);
+    } else {
+      let x = chats.filter(y => {
+        return y.friend.id === user.id && y.chat.workspaceId === workspace.id;
+      });
+
+      x = x[0].chat.msges.filter(msg => {
+        return msg.type !== 'CMD' && msg.type !== 'MSG';
+      });
+      console.log(x);
+
+      setMedia(x);
+    }
+
+    if (user.name) {
+      workspace.chatWorkSpace.forEach(obj1 => {
+        if (!user.user.some(obj2 => obj2.id === obj1.id)) {
+          y.push(obj1);
         }
       });
+      setRenderList(y);
     }
-  }, []);
-  const [reqChannel, ably] = useChannel("server", (message) => { });
-  function array_move(arr, old_index, new_index) {
-    if (new_index >= arr.length) {
-      var k = new_index - arr.length + 1;
-      while (k--) {
-        arr.push(undefined);
-      }
-    }
-    arr.splice(new_index, 0, arr.splice(old_index, 1)[0]);
-    return arr; // for testing
-  }
+  }, [user, chats, groupChat]);
 
-  if (type !== "me") {
-    const [my_channel, ably] = useChannel(me.userId, (message) => { });
-
-    my_channel.subscribe("send-request", (msg) => {
-      let to = msg.data;
-      setter(to);
-      reRendere.current = reRendere.current + 1;
-    });
-
-    my_channel.subscribe("accept-request", (msg) => {
-      let to = msg.data.from_user;
-      let chatId = msg.data.chatId;
-      msgSetter([...msges, { chatId: chatId, msges: [] }]);
-
-      setter(to);
-
-      reRendere.current = reRendere.current + 1;
-    });
-    my_channel.subscribe("reject-request", (msg) => {
-      console.log(msg.data);
-      let to = msg.data.from_user;
-
-      let from = msg.data.from;
-      if (user.userId === from) {
-        user.pending = "rejected";
-      }
-
-      setter(to);
-
-      reRendere.current = reRendere.current + 1;
-    });
-    my_channel.subscribe("block-request", (msg) => {
-      let to = msg.data.to_user;
-      let from = msg.data.from;
-      if (user.userId === from) {
-        user.blocked = from;
-      }
-
-      setter(to);
-    });
-    my_channel.subscribe("unblock-request", (msg) => {
-      let to = msg.data.to_user;
-
-      let from = msg.data.from;
-      if (user.userId === from) {
-        user.blocked = "unblocked";
-      }
-
-      setter(to);
-
-      reRendere.current = reRendere.current + 1;
-    });
-    my_channel.subscribe("remove-request", (msg) => {
-      let to = msg.data;
-
-      setter(to);
-
-      reRendere.current = reRendere.current + 1;
-    });
-  }
-  const unBlockRequest = () => {
+  let accessToken = localStorage.getItem('token');
+  const handleRemoveUser = async (userId, msg, uid, close) => {
     try {
-      reqChannel.publish("unblock-request", {
-        from: me.userId,
-        to: user.userId,
-      });
-      let index;
-      me.friends.forEach((x, i) => {
-        if (x.userId === user.userId) {
-          user.blocked = "unblocked";
-          index = i;
-
-          chatSec(x);
+      await instance.post(
+        '/gchat/remove',
+        {
+          userid: userId,
+          msg: msg,
+          groupId: user.id,
+          userxid: uid
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
         }
-      });
-
-      me.friends = array_move(me.friends, index, 0);
-      setter(me);
-
-      reRendere.current = reRendere.current + 1;
+      );
+      close();
     } catch (error) {
       console.log(error);
     }
   };
-
-  const blockRequest = () => {
+  const handleAddUser = async close => {
     try {
-      reqChannel.publish("block-request", {
-        from: me.userId,
-        to: user.userId,
-      });
-      let index;
-
-      me.friends.forEach((x, i) => {
-        if (x.userId === user.userId) {
-          x.blocked = me.userId;
-          index = i;
-
-          console.log(x);
-
-          chatSec(x);
-        }
-      });
-
-      me.friends = array_move(me.friends, index, 0);
-      setter(me);
-
-      reRendere.current = reRendere.current + 1;
+      if (selectedCheckboxes.length > 0) {
+        setLoading(true);
+        await instance.post(
+          '/gchat/add',
+          {
+            workspaceId: workspace.id,
+            groupChatId: user.id,
+            name: me.name,
+            users: selectedCheckboxes
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          }
+        );
+        setLoading(false);
+        close();
+      }
     } catch (error) {
       console.log(error);
     }
   };
-  const removeRequest = () => {
-    try {
-      reqChannel.publish("remove-request", {
-        from: me.userId,
-        to: user.userId,
-      });
-      let index;
-      me.friends.filter((x, i) => {
-        if (x.userId === user.userId) {
-          x.blocked = "";
-          x.pending = "";
-          user.pending = "";
-          user.blocked = "";
-          index = i;
+  const [selectedCheckboxes, setSelectedCheckboxes] = useState([]);
+  const [renderList, setRenderList] = useState([]);
 
-          chatSec(x);
-        }
-        return x.userId !== user.userId;
+  const handleCheckboxChange = label => {
+    setSelectedCheckboxes(prevSelected => {
+      const isLabelSelected = prevSelected.some(item => {
+        // Compare the properties of the objects
+        return item.id === label.id;
       });
 
-      me.friends = array_move(me.friends, index, 0);
-
-      setter(me);
-
-      reRendere.current = reRendere.current + 1;
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const sendRequest = async () => {
-    try {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-
-      if (user.pending !== me.userId) {
-        reqChannel.publish("send-request", {
-          from: me.userId,
-          to: user.userId,
+      if (isLabelSelected) {
+        return prevSelected.filter(item => {
+          // Filter out the selected label
+          return item.id !== label.id;
         });
-        setter({
-          ...me,
-          friends: [
-            { ...user, pending: me.userId, status: "pending" },
-
-            ...me.friends,
-          ],
-        });
-        user.pending = me.userId;
+      } else {
+        return [...prevSelected, label];
       }
-
-      reRendere.current = reRendere.current + 1;
-    } catch (error) {
-      console.log(error);
-    }
+    });
   };
-
-  const rejectRequest = async () => {
-    try {
-      reqChannel.publish("reject-request", {
-        from: user.userId,
-        to: me.userId,
-      });
-      let index;
-      me.friends.forEach((x, i) => {
-        if (x.userId === user.userId) {
-          x.pending = "rejected";
-          index = i;
-
-          chatSec(x);
-        }
-      });
-      me.friends = array_move(me.friends, index, 0);
-
-      setter(me);
-
-      reRendere.current = reRendere.current + 1;
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const acceptRequest = async () => {
-    try {
-      let chatId = v4();
-      console.log(chatId);
-      reqChannel.publish("accept-request", {
-        from: user.userId,
-        to: me.userId,
-        chatId: chatId,
-      });
-      console.log(chatId);
-      let index;
-      me.friends.forEach((x, i) => {
-        if (x.userId === user.userId) {
-          x.pending = "accepted";
-          x.chatId = chatId;
-          index = i;
-
-          chatSec(x);
-        }
-      });
-      me.friends = array_move(me.friends, index, 0);
-
-      setter(me);
-
-      msgSetter([...msges, { chatId: chatId, msges: [] }]);
-
-      reRendere.current = reRendere.current + 1;
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const [friendData, setFriendData] = useState({
-    pending: 0,
-    blocked: 0,
-    friend: 0,
-  });
-  return (
-    <div className="w-full h-full bg-black  rounded-[10px] border-gray_i_like border-[2px] hover:border-gray-500 max-h-full max-w-full overflow-hidden">
-      {type === "me" ? (
-        <div className="flex flex-wrap felx-col w-full h-full ">
-          <div className="w-full h-[50%] flex flex-wrap justify-start ml-5 mt-5 content-center">
-            <img
-              alt={user.userName}
-              src={user.profilePic}
-              className="h-[90%] w-[50%] object-cover rounded-lg"
-            />
-          </div>
-          <div className="flex flex-col w-full h-[50%]">
-            <div className="text-white text-[30px] font-bold ml-5">
-              {user.userName}
-            </div>
-            <div className="text-gray-400 text-[25px]  ml-5">{user.email}</div>
-
-            <button
-              className="text-black hover:bg-white w-[35%] h-[20%] relative left-[60%]   rounded-lg bg-gray-400"
-              onClick={handleLogout}
-            >
-              Logout
-            </button>
-          </div>
+  return user.name ? (
+    <div className="w-full h-full dark:bg-[#16171B] bg-[#E9EFF4] flex flex-col flex-wrap content-center dark:shadow-left-shadow">
+      <AvatarGroup
+        total={user.user.length <= 3 ? user.user.length : 3}
+        spacing="small"
+        className="relative top-[3%] right-[32%] "
+      >
+        {user.user.map(x => {
+          return <Avatar alt={x.user.name} src={x.user.profilePic} />;
+        })}
+      </AvatarGroup>
+      <div className="text-[24px] dark:text-white font-bold  text-center mt-6">{user.name}</div>
+      <div className="w-[90%] p-3 bg-[#22252F] rounded-xl mt-8">
+        <input className="bg-[#22252F] outline-none text-white " placeholder="Search Messages" />
+      </div>
+      <div className="flex flex-col w-[90%] h-[35%] bg-[#22252F] mt-5 rounded-xl max-h-[35%] overflow-scroll    content-center overflow-x-hidden">
+        <div className="w-full flex justify-around h-[10%] m-1  ">
+          <div className="  text-[#b3b3b3]">file and media </div>
+          <div className="text-[#b3b3b3]">{media.length}</div>
         </div>
-      ) : user === null ? (
-        <div className="flex flex-wrap text-center text-white text-[30px] font-bold justify-center content-center h-full">
-          start a converstion by selecting a friend
+
+        <div className="grid grid-cols-2  gap-2 w-[90%] max-h-[90%] overflow-scroll ml-3  mt-3  ">
+          {media.map(msg => {
+            return (
+              <div className="w-full h-full ">
+                {msg.type === 'IMG' ? (
+                  <img src={msg.url} alt={msg.content} />
+                ) : msg.type === 'VIDEO' ? (
+                  <ReactPlayer url={msg.url} width="440" height="230" />
+                ) : (
+                  <div className="w-full h-full bg-blue-500 flex justify-center content-center flex-wrap rounded-lg">
+                    <div className="p-1 bg-white text-sm w-[90%] rounded-lg ">{msg.content}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {user.userId === me.id ? (
+        <div className="flex  flex-col w- ">
+          <Popup
+            closeOnDocumentClick={false}
+            modal
+            trigger={
+              <div className="bg-[#22252F] p-3 dark:text-white mt-5 w-[98%] h-[25%] rounded-xl cursor-pointer flex flex-wrap justify-center content-center">
+                Add +
+              </div>
+            }
+            position="center"
+            onClose={() => {
+              setSelectedCheckboxes([]);
+              setLoading(false);
+            }}
+          >
+            {close => (
+              <div className="w-full h-full  flex flex-col">
+                <div
+                  className="absolute top-[5%] right-[5%] text-red-500 font-extrabold cursor-pointer"
+                  onClick={() => {
+                    close();
+                  }}
+                >
+                  X
+                </div>
+
+                <div className="dark:text-white font-bold text-[24px] mt-5 ml-5 ">Users</div>
+                <div className="w-full h-[75%] max-h-[75%] overflow-scroll flex-col flex ">
+                  {renderList.map(user => {
+                    return (
+                      <div className="w-[50%] h-[30%] m-5 flex shadow-2xl dark:bg-[#22252F] rounded-lg ml-5 bg-[#F9FBFC]">
+                        <img alt={user.user.name} src={user.user.profilePic} />
+                        <div className="dark:text-white text-[18px] ml-5 mt-1"> {user.user.name}</div>
+
+                        <Checkbox
+                          className="relative right-16 top-3"
+                          onChange={() => {
+                            handleCheckboxChange(user);
+                          }}
+                          checked={selectedCheckboxes.some(item => {
+                            // Check if the label is selected
+                            return item.id === user.id;
+                          })}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <button
+                  className="bg-[#22252F] p-3 cursor-pointer dark:text-white w-[10%] rounded-lg ml-5"
+                  disabled={selectedCheckboxes.length > 0 ? false : true}
+                  onClick={() => {
+                    handleAddUser(close);
+                  }}
+                >
+                  {loading ? 'Loading..' : 'Add+'}
+                </button>
+              </div>
+            )}
+          </Popup>
+          <Popup
+            modal
+            closeOnDocumentClick={false}
+            trigger={
+              <div className="bg-[#22252F] p-3 dark:text-white mt-5 w-[98%] h-[35%] rounded-xl cursor-pointer  flex justify-center content-center flex-wrap ">
+                Manage Members
+              </div>
+            }
+          >
+            {close => (
+              <div className="flex flex-col">
+                <div
+                  className="absolute top-[5%] right-[5%] text-red-500 font-extrabold cursor-pointer"
+                  onClick={() => {
+                    close();
+                  }}
+                >
+                  X
+                </div>
+
+                <div className="dark:text-white font-bold text-[24px] mt-3 ml-3">Remove members</div>
+                <div className="w-[60%] h-[70%] max-h-[70%] overflow-scroll">
+                  {user.user.map(user => {
+                    return user.user.id !== me.id ? (
+                      <div className="w-[70%] h-[50%] m-5 flex shadow-2xl dark:bg-[#22252F] rounded-lg ml-5 bg-[#F9FBFC] relative">
+                        <img alt={user.user.name} src={user.user.profilePic} />
+                        <div className="dark:text-white ml-4 mt-2">{user.user.name}</div>
+                        <button
+                          className="dark:bg-blue-500 text-white h-[50%] p-2  rounded-lg absolute right-[5%] top-[40%]"
+                          onClick={() => {
+                            handleRemoveUser(user.id, `${me.name} removed ${user.user.name}`, user.user.id, close);
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            )}
+          </Popup>
         </div>
       ) : (
-        <div className="w-full h-full flex flex-col">
-          <div className="w-[100%] h-[60%] flex flex-wrap">
-            <img
-              src={user.profilePic}
-              alt={user.userName}
-              className="w-[40%] h-[100%] ml-5 mt-5 rounded-lg"
-            />
-            <div className="felx flex-col">
-              <div className="text-white text-[25px] font-bold mt-5 ml-5">
-                {user.userName}
-              </div>
-              {user.pending === me.userId ? (
-                <div className="text-yellow-400 text-[20px]  mt-3 ml-5">
-                  Request Sent
-                </div>
-              ) : user.pending === user.userId ? (
-                <div className="text-yellow-400 text-[20px]  mt-3 ml-5">
-                  Pending Request
-                </div>
-              ) : user.pending === "rejected" ? (
-                <div className="text-yellow-400 text-[20px]  mt-3 ml-5">
-                  rejected .
-                </div>
-              ) : user.blocked === me.userId ? (
-                <div className="text-red-400 text-[20px]  mt-3 ml-5">
-                  You blocked the user
-                </div>
-              ) : user.blocked === user.userId ? (
-                <div className="text-red-400 text-[20px]  mt-3 ml-5">
-                  User blocked You
-                </div>
-              ) : user.pending === "accepted" ? (
-                <div className="text-green-400 text-[20px]  mt-3 ml-5">
-                  Friend
-                </div>
-              ) : user.pending === "" ? (
-                <div className="text-white text-[20px]  mt-3 ml-5">
-                  Not a Friend
-                </div>
-              ) : user.blocked === "unblocked" ? (
-                <div className="text-green text-[20px]  mt-3 ml-5">Friend</div>
-              ) : (
-                <div className="text-white text-[20px]  mt-3 ml-5">
-                  Not a Friend
-                </div>
-              )}
-            </div>
-          </div>
-          {user.pending === user.userId ? (
-            <div className="flex flex-wrap justify-around mt-10">
-              <button
-                className="bg-gray-400 p-3 w-[35%] rounded-lg hover:bg-white "
-                onClick={acceptRequest}
-              >
-                Accept Request
-              </button>
-              <button
-                className="bg-gray-400 p-3 w-[35%] rounded-lg  hover:bg-white"
-                onClick={rejectRequest}
-              >
-                Reject request
-              </button>
-            </div>
-          ) : user.blocked === me.userId ? (
-            <div className="flex flex-wrap justify-around mt-10">
-              <button
-                className="bg-gray-400 p-3 w-[35%] rounded-lg hover:bg-white "
-                onClick={removeRequest}
-              >
-                Unfriend
-              </button>
-              <button
-                className="bg-gray-400 p-3 w-[35%] rounded-lg  hover:bg-white"
-                onClick={unBlockRequest}
-              >
-                UnBlock
-              </button>
-            </div>
-          ) : user.blocked === user.userId ? (
-            <button
-              className="bg-gray-400 p-3 w-[35%] rounded-lg hover:bg-white mt-10 ml-5 "
-              onClick={removeRequest}
-            >
-              Unfriend
-            </button>
-          ) : user.pending === "accepted" || user.blocked === "unblocked" ? (
-            <div className="flex flex-wrap justify-around mt-10">
-              <button
-                className="bg-gray-400 p-3 w-[35%] rounded-lg hover:bg-white "
-                onClick={removeRequest}
-              >
-                Unfriend
-              </button>
-              <button
-                className="bg-gray-400 p-3 w-[35%] rounded-lg  hover:bg-white"
-                onClick={blockRequest}
-              >
-                Block
-              </button>
-            </div>
-          ) : user.pending === me.userId ? (
-            ""
-          ) : user.pending === "rejected" ? (
-            ""
-          ) : (
-            <button
-              className="bg-gray-400 p-3 w-[35%] rounded-lg hover:bg-white mt-10 ml-5"
-              onClick={sendRequest}
-            >
-              Send Request
-            </button>
-          )}
+        <div
+          className="dark:text-white  w-[90%] h-[5%] text-center bg-[#22252f] mt-5 rounded-lg cursor-pointer flex flex-wrap justify-center content-center "
+          onClick={() => {
+            handleRemoveUser(me.chatWorkSpaces.id, `${me.name} left`, me.id);
+          }}
+        >
+          Leave Group
         </div>
       )}
+    </div>
+  ) : (
+    <div className="w-full h-full dark:bg-[#16171B] bg-[#E9EFF4] flex flex-col flex-wrap content-center dark:shadow-left-shadow">
+      <img alt="loading.." src={user.user.profilePic} className="rounded-full w-[40%] mt-10 ml-20" />
+      <div className="text-[24px] dark:text-white font-bold  text-center mt-6">{user.user.name}</div>
+      <div className="w-[90%] p-3 bg-[#22252F] rounded-xl mt-8">
+        <input className="bg-[#22252F] outline-none text-white " placeholder="Search Messages" />
+      </div>
+      <div className="flex flex-col w-[90%] h-[35%] bg-[#22252F] mt-5 rounded-xl max-h-[35%] overflow-scroll    content-center overflow-x-hidden">
+        <div className="w-full flex justify-around h-[10%] m-1  ">
+          <div className="  text-[#b3b3b3]">file and media </div>
+          <div className="text-[#b3b3b3]">{media.length}</div>
+        </div>
+
+        <div className="grid grid-cols-2  gap-2 w-[90%] max-h-[90%] overflow-scroll ml-3  mt-3  ">
+          {media.map(msg => {
+            return (
+              <div className="w-full h-full ">
+                {msg.type === 'IMG' ? (
+                  <img src={msg.url} alt={msg.content} />
+                ) : msg.type === 'VIDEO' ? (
+                  <ReactPlayer url={msg.url} width="440" height="230" />
+                ) : (
+                  <div className="w-full h-full bg-blue-500 flex justify-center content-center flex-wrap rounded-lg">
+                    <div className="p-1 bg-white text-sm w-[90%] rounded-lg ">{msg.content}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
