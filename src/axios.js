@@ -1,10 +1,11 @@
-import axios from "axios";
+import axios from 'axios';
 
 // let url = "https://backend-chatapp-hwhs.onrender.com";
-let url = "http://localhost:9000";
+
+let url = process.env.REACT_APP_URL;
 
 const instance = axios.create({
-  baseURL: url,
+  baseURL: url
 });
 
 export { instance };
