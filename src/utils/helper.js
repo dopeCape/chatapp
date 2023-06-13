@@ -26,23 +26,23 @@ function calculateLevenshteinDistance(a, b) {
   return distanceMatrix[b.length][a.length];
 }
 function search(users, query, user) {
-  users = users.filter((x) => {
+  users = users.filter(x => {
     return x.user.id != user.id;
   });
-  let results = users.map((object) => {
-    const similarity = calculateLevenshteinDistance(
-      query,
-      object.user.name.toLowerCase()
-    );
+  let results = users.map(object => {
+    const similarity = calculateLevenshteinDistance(query, object.user.name.toLowerCase());
 
     return { object, similarity };
   });
 
   // Sort the results based on similarity
   results.sort((a, b) => a.similarity - b.similarity);
-  results = results.map((x) => x.object);
+  results = results.map(x => x.object);
 
   return results;
 }
 
+function chatSort(a, b) { }
+
+function groupSort(a, b) { }
 export { search };

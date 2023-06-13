@@ -10,7 +10,14 @@ import { instance } from '../axios';
 import { configureAbly } from '@ably-labs/react-hooks';
 import SideBar from '../Components/SideBar';
 import RequestScreen from '../Components/RequestScreen';
-import { useChatStore, useGroupChatStore, useMsgesStore, useSelectedStore, useUserStore } from '../Stores/MainStore';
+import {
+  useChatStore,
+  useGroupChatStore,
+  useMsgesStore,
+  useSelectedStore,
+  useUserStore,
+  useWorkSpaceStore
+} from '../Stores/MainStore';
 
 export default function MainScreen() {
   const [screen, setScreen] = useState('main');
@@ -23,6 +30,7 @@ export default function MainScreen() {
   let profile = useSelectedStore(state => state.user);
   const setChat = useChatStore(state => state.setChat);
   const setGroupChat = useGroupChatStore(state => state.setChat);
+  const setWorkspce = useWorkSpaceStore(state => state.setWorkSelectdSapce);
   const updateUser = useUserStore(state => state.updateUserState);
 
   useEffect(() => {
@@ -47,10 +55,22 @@ export default function MainScreen() {
 
           let groupChat = user.data.user_data.chatWorkSpaces.groupChats;
           let chats = user.data.user_data.chatWorkSpaces.Friend;
-
+          chats.sort((a, b) => {
+            const aLM = a.chat.msges[a.chat.msges.length - 1];
+            const bLM = b.chat.msges[b.chat.msges.length - 1];
+            return new Date(bLM.createdAt) - new Date(aLM.createdAt);
+          });
+          groupChat.sort((a, b) => {
+            const aLM = a.msges[a.msges.length - 1];
+            const bLM = b.msges[b.msges.length - 1];
+            return new Date(bLM.createdAt) - new Date(aLM.createdAt);
+          });
           setChat(chats);
           setGroupChat(groupChat);
           updateUser(user.data.user_data);
+          if (user.data.user_data.chatWorkSpaces.workspaces[0]) {
+            setWorkspce(user.data.user_data.chatWorkSpaces.workspaces[0]);
+          }
         }, 3000);
         // ...
       } else {

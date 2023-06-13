@@ -279,16 +279,10 @@ export default function ChatSelector() {
                     </div>
                   );
                 })
-                : list.map((fr, index) => {
-                  return (
-                    <div className="w-[90%]">
-                      <UserElement type={'find'} user={fr} index={index} me={me} />
-                    </div>
-                  );
-                })}
+                : null}
             </div>
           </div>
-          <div className="w-full max-h-[50%]  flex flex-col flex-warp bg-[#F9FBFC]  dark:bg-[#121316] mt-10">
+          <div className="w-full max-h-[50%]  flex flex-col flex-warp bg-[#F9FBFC]  dark:bg-[#121316] mt-10  overflow-hidden">
             <div className="flex flex-wrap w-[90%] h-[5%]    justify-between content-end mt-3 ml-5 ">
               {back ? (
                 <i
@@ -299,7 +293,7 @@ export default function ChatSelector() {
                 <>{null}</>
               )}
 
-              <div className="text-[20px] font-extrabold relative bottom-1 cursor-pointer dark:text-white ">
+              <div className="text-[20px] font-extrabold relative bottom- cursor-pointer dark:text-white ">
                 Direct Messages
               </div>
               {!back ? <i class="fa-solid fa-plus dark:text-white mt-1" onClick={handleChangeBar}></i> : <></>}

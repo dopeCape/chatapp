@@ -30,6 +30,8 @@ export default function ChatSection() {
   const [uploding, setUploding] = useState(false);
   const [chatId, setChatid] = useState(null);
   const [type, setType] = useState('MSG');
+  const [timeOut, addTimeout] = useState(null);
+
   const [file, setFile] = useState();
   const fileRef = useRef();
   const [emoji, setEmoji] = useState(false);
@@ -37,40 +39,14 @@ export default function ChatSection() {
   let me = useUserStore(state => state.user);
   let user = useSelectedChatStore(state => state.user);
   let chat_ = useChatStore(state => state.chats);
+  const setTyping = useChatStore(state => state.setTyping);
   let group_ = useGroupChatStore(state => state.chats);
   let workspace = useWorkSpaceStore(state => state.workspace);
+  const setRead = useChatStore(state => state.setUnReadToZero);
   const setSelected = useSelectedStore(state => state.updateSelectedState);
   const screollRef = useRef();
   const chatRef = useRef();
-  //
-  // const [my_channel, ably] = useChannel(me.userId, (x) => { });
-  // function array_move(arr, old_index, new_index) {
-  //   if (new_index >= arr.length) {
-  //     var k = new_index - arr.length + 1;
-  //     while (k--) {
-  //       arr.push(undefined);
-  //     }
-  //   }
-  //   arr.splice(new_index, 0, arr.splice(old_index, 1)[0]);
-  //   return arr; // for testing
-  // }
-  //
 
-  //
-  // my_channel.subscribe("delete-msg", (data) => {
-  //   msges.forEach((x) => {
-  //     if (x.chatId === data.data.chatId) {
-  //       x.msges = data.data.msges;
-  //     }
-  //   });
-  //   msgSetter(msges);
-  //
-  //   changeChat();
-  //
-  //   screollRef.current?.scrollIntoView({
-  //     behavior: "smooth",
-  //   });
-  // });
   const changeChat = () => {
     if (user !== null && user.name) {
       let y = [];
@@ -78,25 +54,36 @@ export default function ChatSection() {
         group_.forEach(x => {
           if (x.id === user.id) {
             y = x.msges;
-
             setChatid(x.id);
           }
         });
       }
       setChat(y);
-      // scrollRef.current.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'start' });
     } else {
       let y = [];
+      let w;
       if (user !== null) {
         chat_.forEach(x => {
           if (x.friend.user.id === user.user.id && x.chat.workspaceId === workspace.id) {
             y = x.chat.msges;
+            w = x;
             setChatid(x.chatId);
           }
         });
         setChat(y);
-        // scrollRef.current.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'start' });
+        handleRead(w);
       }
+    }
+  };
+  const handleRead = chat => {
+    try {
+      if (chat.unRead > 0) {
+        let id = chat.id;
+        server_channel.publish('unread-chat', { id });
+        setRead(id);
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
   const setProfile = () => {
@@ -105,90 +92,124 @@ export default function ChatSection() {
   useEffect(() => {
     changeChat();
   }, [user, chat_, group_]);
-  //
-  const handleFileChange = async e => {
-    if (e.target.files) {
-      if (e.target.files[0].size < 10000000) {
-        setFile(e.target.files[0]);
-        const file = e.target.files[0];
+  let userChannelId = 'x';
+  let meId = 'y';
+  if (user != null) {
+    if (user.name) {
+      userChannelId = 'x';
+    } else {
+      userChannelId = user.user.id;
+    }
+  }
 
-        const fileExt = file.name;
+  const [chatUserChannel, __] = useChannel(userChannelId, () => { });
+  const [userChaneel, ___] = useChannel(me.id, () => { });
 
-        const type = file.type;
-
-        const storage = getStorage();
-        const storageRef = ref(storage, 'files/' + fileExt);
-
-        let url;
-        let file_type;
-        console.log(type);
-
-        if (type === 'video/mp4') {
-          console.log(file);
-
-          file_type = 'VIDEO';
-        } else if (type === 'image/gif' || type === 'image/jpeg' || type === 'image/png' || type == 'image/webp') {
-          file_type = 'IMG';
-        } else {
-          file_type = 'FILE';
-        }
-        setUploding(true);
-
-        uploadBytes(storageRef, file).then(snapshot => {
-          getDownloadURL(snapshot.ref).then(ur => {
-            setUploding(false);
-            url = ur;
-            if (user.name) {
-              server_channel.publish('new-msg-group', {
-                content: fileExt,
-                url: url,
-                type: file_type,
-                from: me.id,
-                to: user.user,
-                chatId: chatId
-              });
-            } else {
-              server_channel.publish('new-msg', {
-                content: fileExt,
-                url: url,
-                type: file_type,
-                from: me.id,
-                to: user.user.id,
-                chatId: chatId
-              });
-            }
-          });
-        });
-      } else {
-        alert('file size should be less than 10mb');
+  useEffect(() => {
+    userChaneel.subscribe('typing', data => {
+      console.log(data.data);
+      setTyping(data.data.chatId, data.data.typing);
+      if (timeOut != null) {
+        clearTimeout(timeOut);
       }
+      let timeOutId = setTimeout(() => {
+        setTyping(data.data.chatId, false);
+      }, 2000);
+
+      addTimeout(timeOutId);
+    });
+    return () => {
+      userChaneel.unsubscribe('typing');
+    };
+  }, []);
+
+  const handleInputChange = e => {
+    try {
+      e.target.style.height = 'auto';
+
+      e.target.style.height = e.scrollHeight + 'px';
+
+      if (chatRef.current.value !== '') {
+        chatUserChannel.publish('typing', { typing: true, chatId: chatId });
+      } else {
+        chatUserChannel.publish('typing', { typing: false, chatId: chatId });
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleFileChange = async e => {
+    try {
+      if (e.target.files) {
+        if (e.target.files[0].size < 10000000) {
+          setFile(e.target.files[0]);
+          const file = e.target.files[0];
+
+          const fileExt = file.name;
+
+          const type = file.type;
+
+          const storage = getStorage();
+          const storageRef = ref(storage, 'files/' + fileExt);
+
+          let url;
+          let file_type;
+          console.log(type);
+
+          if (type === 'video/mp4') {
+            console.log(file);
+
+            file_type = 'VIDEO';
+          } else if (type === 'image/gif' || type === 'image/jpeg' || type === 'image/png' || type == 'image/webp') {
+            file_type = 'IMG';
+          } else {
+            file_type = 'FILE';
+          }
+          setUploding(true);
+
+          uploadBytes(storageRef, file).then(snapshot => {
+            getDownloadURL(snapshot.ref).then(ur => {
+              setUploding(false);
+              url = ur;
+              if (user.name) {
+                server_channel.publish('new-msg-group', {
+                  content: fileExt,
+                  url: url,
+                  type: file_type,
+                  from: me.id,
+                  to: user.user,
+                  chatId: chatId
+                });
+              } else {
+                let friend = user.user.chatWorkSpaces.Friend.filter(x => {
+                  return x.workspaceId === workspace.id;
+                });
+
+                server_channel.publish('new-msg', {
+                  content: fileExt,
+                  url: url,
+                  type: file_type,
+                  from: me.id,
+                  to: user.user.id,
+                  chatId: chatId,
+                  friendId: friend[0].id
+                });
+              }
+            });
+          });
+        } else {
+          alert('file size should be less than 10mb');
+        }
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
   const scrollRef = useRef();
 
   const [server_channel, _] = useChannel('server', () => { });
-  // const handleDeleteMsg = async (e) => {
-  //   try {
-  //     server_channel.publish("delete-msg", {
-  //       chatId: user.chatId,
-  //       msgId: e.currentTarget.getAttribute("data-value"),
-  //       to: user.userId,
-  //     });
-  //     let new_chat = chat.filter((x) => {
-  //       return x.msgId !== e.currentTarget.getAttribute("data-value");
-  //     });
-  //     msges.forEach((x) => {
-  //       if (x.chatId === user.chatId) {
-  //         x.msges = new_chat;
-  //       }
-  //     });
-  //     msgSetter(msges);
-  //
-  //     changeChat();
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // };
+
   const handleSendMsg = async () => {
     if (chatRef.current.value !== '') {
       if (chat.length === 0) {
@@ -196,7 +217,7 @@ export default function ChatSection() {
           user1: {
             id: me.chatWorkSpaces.id,
             user: {
-              id: me.chatWorkSpaces.user.id
+              id: me.id
             }
           },
           user2: {
@@ -222,34 +243,23 @@ export default function ChatSection() {
             chatId: chatId
           });
         } else {
+          let friend = user.user.chatWorkSpaces.Friend.filter(x => {
+            return x.workspaceId === workspace.id;
+          });
+
           server_channel.publish('new-msg', {
             content: chatRef.current.value,
             type: type,
             from: me.id,
             to: user.user.id,
-            chatId: chatId
+            chatId: chatId,
+            friendId: friend[0].id
           });
         }
         chatRef.current.value = '';
       }
     }
   };
-
-  // useEffect(() => {
-  //   const x = async () => {
-  //     if (user.pending === "accepted") {
-  //       let msges = await instance.get(`/msges/${user.chatId}`, {
-  //         headers: {
-  //           Authorization: `Bearer ${localStorage.getItem("token")}`,
-  //         },
-  //       });
-  //       let nemsges = msges.data.msges.msges;
-  //
-  //       setChat(nemsges);
-  //     }
-  //   };
-  //   x();
-  // }, []);
 
   return user === undefined || user === null ? (
     <div className="w-full h-full bg-white dark:bg-[#2c2c2c] dark:text-white text-[26px] font-bold flex flex-wrap justify-center content-center">
@@ -280,9 +290,9 @@ export default function ChatSection() {
       )}
 
       <div className="w-full h-[80%] max-h-[80%] flex flex-col overflow-scroll ">
-        {chat.map(msg => {
+        {chat.map((msg, index) => {
           return (
-            <div className=" ">
+            <div className=" " key={index}>
               <MsgElement
                 msg={msg}
                 chatId={chatId}
@@ -293,8 +303,9 @@ export default function ChatSection() {
             </div>
           );
         })}
-        <div ref={scrollRef}></div>
       </div>
+
+      {/* {chat.length > 0 ? <div ref={scrollRef}></div> : null} */}
       {emoji ? (
         <div
           className="absolute
@@ -330,7 +341,8 @@ export default function ChatSection() {
         <input
           ref={chatRef}
           type="text"
-          className="bg-[#EFEFEF]  outline-none border-none w-[80%] dark:bg-[#22252F] dark:text-white  "
+          className="bg-[#EFEFEF]  outline-none border-none w-[80%] max-w-[80%] dark:bg-[#22252F] dark:text-white  resize-none overflow-hidden min-h-[50%] "
+          onChange={handleInputChange}
         />
         <i
           class="fa-regular fa-face-smile dark:text-white text-[22px] cursor-pointer mr-3"

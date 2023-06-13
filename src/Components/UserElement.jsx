@@ -22,17 +22,26 @@ export default function UserElement({
       let typing = chat.filter(x => {
         return x.friend.id === user.id && x.chat.workspaceId === workspace.id;
       });
-      console.log(typing);
-
-      fsetChat(typing[0].chat);
+      fsetChat(typing[0]);
+      console.log(typing[0].unRead);
     }
-  }, [chat]);
+  }, [chat, me, user]);
 
   const handleSetProfile = () => {
     if (type === 'find') {
       setChat(user);
     } else {
       setChat(user);
+      fsetChat({ ...fchat, unRead: 0 });
+    }
+  };
+  const trunc = s => {
+    if (s) {
+      if (s.length > 20) {
+        return s.substring(0, 20) + '...';
+      } else {
+        return s;
+      }
     }
   };
   return type === 'group' ? (
@@ -62,10 +71,19 @@ export default function UserElement({
       />
       <div className="flex flex-col flex-wrap ml-4 mt-3 cursor-pointer  " onClick={handleSetProfile}>
         <div className="font-bold text-[18px] dark:text-white mt-1">{user.user.name}</div>
-        <div className="dark:text-[#909090] dark:hover:text-white">
-          {fchat?.typing ? 'typing..' : fchat?.msges.at(-1).content}
-        </div>
+        {fchat != null && fchat.chat !== undefined ? (
+          <div className="dark:text-[#909090] dark:hover:text-white">
+            {fchat?.chat.typing ? 'typing..' : trunc(fchat?.chat.msges.at(-1).content)}
+          </div>
+        ) : null}
       </div>
+      {type === 'friend' && fchat != null ? (
+        fchat.unRead > 0 ? (
+          <div className="dark:text-white mt-4  rounded-full bg-blue-500 w-[30px] h-[30px] flex flex-wrap justify-center content-center absolute  right-[10%] bottom-[30%] ">
+            {fchat?.unRead > 9 ? '9+' : fchat?.unRead}
+          </div>
+        ) : null
+      ) : null}
     </div>
   );
 }

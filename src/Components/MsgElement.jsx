@@ -4,6 +4,9 @@ import { useUserStore } from '../Stores/MainStore';
 import { useChannel } from '@ably-labs/react-hooks';
 
 import ReactPlayer from 'react-player';
+import { getStorage, ref } from 'firebase/storage';
+
+import axios from 'axios';
 
 export default function MsgElement({ msg, chatId, from, to, type }) {
   const me = useUserStore(state => state.user);
@@ -19,8 +22,11 @@ export default function MsgElement({ msg, chatId, from, to, type }) {
   };
 
   const [server_channel, _] = useChannel('server', () => { });
-  const handleDelete = close => {
+  const handleDelete = async close => {
     try {
+      if (msg.type !== 'MSG' && msg.type !== 'CMD') {
+        await axios.delete(msg.url);
+      }
       if (type === 'group') {
         console.log(to);
         server_channel.publish('delete-msg-group', {
@@ -72,7 +78,7 @@ export default function MsgElement({ msg, chatId, from, to, type }) {
 
   return (
     <div
-      className={`flex flex-wrap ${msg.type === 'CMD' ? 'justify-center' : msg.from.id === me.id ? 'justify-end' : ''
+      className={`flex flex-wrap w-full ${msg.type === 'CMD' ? 'justify-center' : msg.from.id === me.id ? 'justify-end' : ''
         } `}
     >
       {msg.type === 'CMD' ? (
@@ -81,7 +87,7 @@ export default function MsgElement({ msg, chatId, from, to, type }) {
         </div>
       ) : msg.from.id === me.id ? (
         <div
-          className="flex justify-end "
+          className="flex justify-end w-full "
           onMouseEnter={() => {
             setHovering(true);
           }}
@@ -111,7 +117,7 @@ export default function MsgElement({ msg, chatId, from, to, type }) {
               </div>
             </div>
           ) : editng ? (
-            <div className="bg-[#4D96DA] p-2   text-[18px] rounded-xl pl-3 pr-3 rounded-tr-none  relative mr-6 mt-5  dark:text-white flex">
+            <div className="bg-[#4D96DA] p-2   text-[18px] rounded-xl pl-3 pr-3 rounded-tr-none  relative mr-6 mt-5  dark:text-white flex ">
               <input
                 ref={editRef}
                 className="bg-[#4D96DA] outline-none rounded-xl rounded-tr-none text-white  "
@@ -124,7 +130,7 @@ export default function MsgElement({ msg, chatId, from, to, type }) {
               </div>
             </div>
           ) : (
-            <div className="bg-[#4D96DA] p-2   text-[18px] rounded-xl pl-3 pr-3 rounded-tr-none  relative mr-6 mt-5  dark:text-white">
+            <div className="bg-[#4D96DA] p-2   text-[18px] rounded-xl pl-3 pr-3 rounded-tr-none  relative mr-6 mt-5  dark:text-white flex   max-w-[45%]">
               {msg.content}
             </div>
           )}
@@ -152,7 +158,7 @@ export default function MsgElement({ msg, chatId, from, to, type }) {
           >
             {close => (
               <div className="w-[60px] h-[30px] flex flex-col">
-                {msg.type == 'MSG' ? (
+                {msg.type === 'MSG' ? (
                   <div
                     className=" bg-[#8F8F8F] text-white rounded-t-md text-center cursor-pointer"
                     onClick={() => {
@@ -201,7 +207,7 @@ export default function MsgElement({ msg, chatId, from, to, type }) {
           </div>
         </div>
       ) : (
-        <div className="bg-[#E9EFF4] p-2 relative  left-[3%] mt-5 text-[18px]  rounded-tl-none rounded-xl pl-3 pr-3 ">
+        <div className="bg-[#E9EFF4] p-2 relative  left-[3%] mt-5 text-[18px]  rounded-tl-none rounded-xl pl-3 pr-3 max-w-[45%] ">
           {msg.content}
         </div>
       )}

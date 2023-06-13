@@ -47,6 +47,7 @@ export default function SideBar({ setter, type }) {
   const removeMemberFromGrup = useGroupChatStore(state => state.removeuser);
   const selectedChatStore = useSelectedChatStore(state => state.user);
   const updateSelectedChatStore = useSelectedChatStore(state => state.updateChatState);
+  const addUndread = useChatStore(state => state.incrementUnRead);
 
   const removeGroup = useGroupChatStore(state => state.removegroup);
   const updateGroupChat = useGroupChatStore(state => state.updateChat);
@@ -163,7 +164,7 @@ export default function SideBar({ setter, type }) {
       updateUser(to);
     });
     my_channel.subscribe('new-chat', msg => {
-      console.log(msg);
+      console.log(msg.data.data);
       let new_chat = msg.data.data;
       addChat(new_chat);
     });
@@ -196,8 +197,10 @@ export default function SideBar({ setter, type }) {
 
     my_channel.subscribe('new-msg', data => {
       let msg = data.data;
+      console.log(msg.data.friendId);
+      addUndread(msg.data.friendId);
 
-      addMsg(msg.data.msg);
+      addMsg(msg.data.msg.msg);
     });
     my_channel.subscribe('new-msg-group', data => {
       console.log(data.data.msg.msg, data.data.chatId);
