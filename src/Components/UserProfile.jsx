@@ -232,13 +232,13 @@ export default function UserProfile() {
             modal
             closeOnDocumentClick={false}
             trigger={
-              <div className="bg-[#22252F] p-3 dark:text-white mt-5 w-[98%] h-[35%] rounded-xl cursor-pointer  flex justify-center content-center flex-wrap ">
+              <div className="bg-[#22252F] p-3 dark:text-white mt-5 w-[98%] h-[35%]  rounded-xl cursor-pointer  flex justify-center content-center flex-wrap ">
                 Manage Members
               </div>
             }
           >
             {close => (
-              <div className="flex flex-col">
+              <div className="flex flex-col max-h-[100%] overflow-hidden">
                 <div
                   className="absolute top-[5%] right-[5%] text-red-500 font-extrabold cursor-pointer"
                   onClick={() => {
@@ -249,7 +249,7 @@ export default function UserProfile() {
                 </div>
 
                 <div className="dark:text-white font-bold text-[24px] mt-3 ml-3">Remove members</div>
-                <div className="w-[60%] h-[70%] max-h-[70%] overflow-scroll">
+                <div className="w-[60%] h-[70%] max-h-[70%] relative overflow-scroll ">
                   {user.groupChat.groupChatRef.map(user_ => {
                     let groupChatRefId = user.groupChat.groupChatRef.filter(x => {
                       return x.user.id === user_.user.id;
