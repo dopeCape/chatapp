@@ -53,7 +53,7 @@ export default function MainScreen() {
             }
           });
 
-          let groupChat = user.data.user_data.chatWorkSpaces.groupChats;
+          let groupChat = user.data.user_data.chatWorkSpaces.groupChatRef;
           let chats = user.data.user_data.chatWorkSpaces.Friend;
           chats.sort((a, b) => {
             const aLM = a.chat.msges[a.chat.msges.length - 1];
@@ -61,11 +61,13 @@ export default function MainScreen() {
             return new Date(bLM.createdAt) - new Date(aLM.createdAt);
           });
           groupChat.sort((a, b) => {
-            const aLM = a.msges[a.msges.length - 1];
-            const bLM = b.msges[b.msges.length - 1];
+            const aLM = a.groupChat.msges[a.groupChat.msges.length - 1];
+            const bLM = b.groupChat.msges[b.groupChat.msges.length - 1];
             return new Date(bLM.createdAt) - new Date(aLM.createdAt);
           });
           setChat(chats);
+          console.log(groupChat);
+
           setGroupChat(groupChat);
           updateUser(user.data.user_data);
           if (user.data.user_data.chatWorkSpaces.workspaces[0]) {

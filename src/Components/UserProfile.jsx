@@ -31,9 +31,9 @@ export default function UserProfile() {
   const [renderMedia, setRenderMedia] = useState([]);
   useEffect(() => {
     let y = [];
-    console.log(me);
-    if (user.name) {
-      let x = user.msges.filter(msg => {
+
+    if (user.groupChat) {
+      let x = user.groupChat.msges.filter(msg => {
         return msg.type !== 'CMD' && msg.type !== 'MSG';
       });
       setMedia(x);
@@ -50,9 +50,9 @@ export default function UserProfile() {
       setMedia(x);
     }
 
-    if (user.name) {
+    if (user.groupChat) {
       workspace.chatWorkSpace.forEach(obj1 => {
-        if (!user.user.some(obj2 => obj2.id === obj1.id)) {
+        if (!user.groupChat.groupChatRef.some(obj2 => obj2.user.id === obj1.id)) {
           y.push(obj1);
         }
       });
@@ -61,14 +61,15 @@ export default function UserProfile() {
   }, [user, chats, groupChat]);
 
   let accessToken = localStorage.getItem('token');
-  const handleRemoveUser = async (userId, msg, uid, close) => {
+  const handleRemoveUser = async (userId, msg, uid, groupChatRefId, close) => {
     try {
       await instance.post(
         '/gchat/remove',
         {
           userid: userId,
           msg: msg,
-          groupId: user.id,
+          groupId: user.groupChat.id,
+          groupChatRefId: groupChatRefId,
           userxid: uid
         },
         {
@@ -90,7 +91,7 @@ export default function UserProfile() {
           '/gchat/add',
           {
             workspaceId: workspace.id,
-            groupChatId: user.id,
+            groupChatId: user.groupChat.id,
             name: me.name,
             users: selectedCheckboxes
           },
@@ -127,18 +128,18 @@ export default function UserProfile() {
       }
     });
   };
-  return user.name ? (
-    <div className="w-full h-full dark:bg-[#16171B] bg-[#E9EFF4] flex flex-col flex-wrap content-center dark:shadow-left-shadow">
+  return user.groupChat ? (
+    <div className="w-full h-full dark:bg-[#16171B] bg-[#E9EFF4] flex flex-col flex-wrap content-center dark:shadow-left-shadow relative">
       <AvatarGroup
-        total={user.user.length <= 3 ? user.user.length : 3}
+        total={user.groupChat.groupChatRef.length <= 3 ? user.groupChat.groupChatRef.length : 3}
         spacing="small"
-        className="relative top-[3%] right-[32%] "
+        className="w-[50%] top-5 relative left-1"
       >
-        {user.user.map(x => {
-          return <Avatar alt={x.user.name} src={x.user.profilePic} />;
+        {user.groupChat.groupChatRef.map(x => {
+          return <Avatar alt={x.user.user.name} src={x.user.user.profilePic} />;
         })}
       </AvatarGroup>
-      <div className="text-[24px] dark:text-white font-bold  text-center mt-6">{user.name}</div>
+      <div className="text-[24px] dark:text-white font-bold  text-center mt-6">{user.groupChat.name}</div>
       <div className="w-[90%] p-3 bg-[#22252F] rounded-xl mt-8">
         <input className="bg-[#22252F] outline-none text-white " placeholder="Search Messages" />
       </div>
@@ -166,7 +167,7 @@ export default function UserProfile() {
           })}
         </div>
       </div>
-      {user.userId === me.id ? (
+      {user.groupChat.userId === me.id ? (
         <div className="flex  flex-col w- ">
           <Popup
             closeOnDocumentClick={false}
@@ -216,8 +217,8 @@ export default function UserProfile() {
                   })}
                 </div>
                 <button
-                  className="bg-[#22252F] p-3 cursor-pointer dark:text-white w-[10%] rounded-lg ml-5"
-                  disabled={selectedCheckboxes.length > 0 ? false : true}
+                  className="bg-[#22252F] p-3 cursor-pointer dark:text-white max-w-[15%]  rounded-lg ml-5"
+                  disabled={selectedCheckboxes.length > 0 && !loading ? false : true}
                   onClick={() => {
                     handleAddUser(close);
                   }}
@@ -249,15 +250,24 @@ export default function UserProfile() {
 
                 <div className="dark:text-white font-bold text-[24px] mt-3 ml-3">Remove members</div>
                 <div className="w-[60%] h-[70%] max-h-[70%] overflow-scroll">
-                  {user.user.map(user => {
-                    return user.user.id !== me.id ? (
+                  {user.groupChat.groupChatRef.map(user_ => {
+                    let groupChatRefId = user.groupChat.groupChatRef.filter(x => {
+                      return x.user.id === user_.user.id;
+                    });
+                    return user_.user.user.id !== me.id ? (
                       <div className="w-[70%] h-[50%] m-5 flex shadow-2xl dark:bg-[#22252F] rounded-lg ml-5 bg-[#F9FBFC] relative">
-                        <img alt={user.user.name} src={user.user.profilePic} />
-                        <div className="dark:text-white ml-4 mt-2">{user.user.name}</div>
+                        <img alt={user_.user.user.name} src={user_.user.user.profilePic} />
+                        <div className="dark:text-white ml-4 mt-2">{user_.user.user.name}</div>
                         <button
                           className="dark:bg-blue-500 text-white h-[50%] p-2  rounded-lg absolute right-[5%] top-[40%]"
                           onClick={() => {
-                            handleRemoveUser(user.id, `${me.name} removed ${user.user.name}`, user.user.id, close);
+                            handleRemoveUser(
+                              user_.id,
+                              `${me.name} removed ${user_.user.user.name}`,
+                              user_.user.user.id,
+                              groupChatRefId[0].id,
+                              close
+                            );
                           }}
                         >
                           Remove
@@ -274,7 +284,7 @@ export default function UserProfile() {
         <div
           className="dark:text-white  w-[90%] h-[5%] text-center bg-[#22252f] mt-5 rounded-lg cursor-pointer flex flex-wrap justify-center content-center "
           onClick={() => {
-            handleRemoveUser(me.chatWorkSpaces.id, `${me.name} left`, me.id);
+            handleRemoveUser(me.chatWorkSpaces.id, `${me.name} left`, me.id, user.id);
           }}
         >
           Leave Group

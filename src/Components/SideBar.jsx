@@ -66,6 +66,7 @@ export default function SideBar({ setter, type }) {
   const setUser = useUserStore(state => state.updateUserState);
   const addChat = useChatStore(state => state.addChat);
   const addMsg = useChatStore(state => state.addMsg);
+  const inclrementGroupUnRead = useGroupChatStore(state => state.incrementUnRead);
 
   const deleteMsg = useChatStore(state => state.deleteMsg);
   const deleteGroupMsg = useGroupChatStore(state => state.deleteMsg);
@@ -79,11 +80,10 @@ export default function SideBar({ setter, type }) {
 
   let selected = useSelectedStore(state => state.user);
   const setSelectedProfile = useSelectedStore(state => state.updateSelectedState);
-  let msges = useMsgesStore(state => state.msges);
   const handleNewMemberInWokrSpace = msg => {
     addUserToGroup(msg.data.newUser, msg.data.chiatId);
     updateGroupChat(msg.data.msg, msg.data.chiatId);
-    addUserToWorkSpace(msg.data.newUser, msg.data.workSpaceID);
+    addUserToWorkSpace(msg.data.user, msg.data.workSpaceID);
   };
 
   const handleCreateWorkSpace = async close => {
@@ -164,9 +164,9 @@ export default function SideBar({ setter, type }) {
       updateUser(to);
     });
     my_channel.subscribe('new-chat', msg => {
-      console.log(msg.data.data);
       let new_chat = msg.data.data;
       addChat(new_chat);
+      addUndread(msg.data.friendId);
     });
     my_channel.subscribe('new-memeber-group', msg => {
       msg.data.newUser.forEach(x => {
@@ -174,6 +174,8 @@ export default function SideBar({ setter, type }) {
       });
 
       updateGroupChat(msg.data.msg, msg.data.chatId);
+
+      inclrementGroupUnRead(msg.data.chatId);
     });
 
     my_channel.subscribe('new-memeber-workspace', msg => {
@@ -185,25 +187,27 @@ export default function SideBar({ setter, type }) {
     });
     my_channel.subscribe('new-group', msg => {
       addGroupChat(msg.data.GroupChat);
+
+      inclrementGroupUnRead(msg.data.GroupChat.groupChat.id);
     });
     my_channel.subscribe('accept-request', msg => {
       let to = msg.data.from_user;
       let chatId = msg.data.chatId;
-
       changeMsgState({ chatId: chatId, msges: [] });
-
       updateUser(to);
     });
 
     my_channel.subscribe('new-msg', data => {
       let msg = data.data;
-      console.log(msg.data.friendId);
       addUndread(msg.data.friendId);
-
       addMsg(msg.data.msg.msg);
     });
     my_channel.subscribe('new-msg-group', data => {
-      console.log(data.data.msg.msg, data.data.chatId);
+      if (data.data.msg.msg.from.id !== me.id) {
+        inclrementGroupUnRead(data.data.chatId);
+      }
+      if (selectedChatStore.id === data.data.chatRefId) {
+      }
 
       updateGroupChat(data.data.msg.msg, data.data.chatId);
     });
@@ -231,20 +235,19 @@ export default function SideBar({ setter, type }) {
       editMsg(msg.msgId, msg.chatId, msg.content);
     });
     my_channel.subscribe('group-remove', data => {
-      console.log(data.data);
-      removeGroup(data.data.groupId);
-      if (selectedChatStore.id === data.data.groupId) {
+      removeGroup(data.data.groupChatRefId);
+      if (selectedChatStore.id === data.data.groupChatRefId) {
         updateSelectedChatStore(null);
       }
-      if (selected.id === data.data.groupId) {
+      if (selected.id === data.data.groupChatRefId) {
         setSelectedProfile(null);
       }
     });
 
     my_channel.subscribe('group-remove-member', data => {
-      console.log(data.data);
-      removeMemberFromGrup(data.data.groupId, data.data.rId, data.data.msg);
+      removeMemberFromGrup(data.data.groupId, data.data.groupChatRefId);
       updateGroupChat(data.data.msg, data.data.groupId);
+      inclrementGroupUnRead(data.data.groupId);
     });
 
     return () => {
@@ -372,7 +375,7 @@ export default function SideBar({ setter, type }) {
                     handleCreateWorkSpace(close);
                   }}
                 >
-                  {req ? <img src={Loadingbar} /> : 'create'}
+                  {req ? <img src={Loadingbar} alt="loadin..." /> : 'create'}
                 </button>
               </div>
               <div className="text-red-600 text-[18px] mt-1 ">{error}</div>
@@ -385,9 +388,12 @@ export default function SideBar({ setter, type }) {
         Logout
       </button>
       <div className="flex flex-wrap flex-col  w-[2.5%] h-[10%] justify-between content-center absolute  bottom-[5%] ml-6 dark:bg-[#040706] rounded-3xl pt-2 pb-2 ">
-        <i className="fa-solid fa-sun text-[#4D96DA] text-[25px] cursor-pointer" onClick={removeDarkMode}></i>
+        <i className="fa-solid fa-sun text-[#4D96DA] text-[20px] cursor-pointer" onClick={removeDarkMode}></i>
 
-        <i class="fa-solid fa-moon text-[#4D96DA] text-[25px] cursor-pointer" onClick={addDarkMode}></i>
+        <i
+          class="fa-solid fa-moon text-[#4D96DA] text-[20px] relative left-[5%] cursor-pointer"
+          onClick={addDarkMode}
+        ></i>
       </div>
     </div>
   ) : (

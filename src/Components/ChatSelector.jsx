@@ -30,7 +30,7 @@ export default function ChatSelector() {
 
     if (selectedWorkspace != null) {
       groupStore.forEach(x => {
-        if (x.workspaceId === selectedWorkspace.id) {
+        if (x.groupChat.workspaceId === selectedWorkspace.id) {
           group_.push(x);
         }
       });
@@ -42,6 +42,7 @@ export default function ChatSelector() {
 
       setChat(chat_);
       setGroup(group_);
+      console.log(group_);
     }
 
     let temp_list = [];
@@ -106,6 +107,15 @@ export default function ChatSelector() {
         return [...prevSelected, label];
       }
     });
+  };
+  let friendRef = useRef();
+  const handleSeachFriends = async () => {
+    let q = friendRef.current.value;
+
+    try {
+    } catch (error) {
+      console.log(error);
+    }
   };
   const handleSearch = async () => {
     let q = searhRef.current.value;
@@ -204,23 +214,25 @@ export default function ChatSelector() {
                         X
                       </div>
 
-                      <div className="w-full h-[50%] max-h-[50%] overflow-scroll flex-col flex">
+                      <div className="w-full h-[60%] max-h-[60%] overflow-scroll flex-col flex">
                         {renderList.map(user => {
                           return (
-                            <div className="w-[50%] h-[30%] m-5 flex shadow-2xl dark:bg-[#22252F] rounded-lg ml-5 bg-[#F9FBFC]">
+                            <div className="w-[50%] h-[30%] m-5 flex shadow-2xl dark:bg-[#22252F] rounded-lg ml-5 bg-[#F9FBFC] relative">
                               <img alt={user.user.name} src={user.user.profilePic} />
                               <div className="dark:text-white text-[18px] ml-5 mt-1"> {user.user.name}</div>
 
-                              <Checkbox
-                                className="relative right-16 top-3"
-                                onChange={() => {
-                                  handleCheckboxChange(user);
-                                }}
-                                checked={selectedCheckboxes.some(item => {
-                                  // Check if the label is selected
-                                  return item.id === user.id;
-                                })}
-                              />
+                              <div className="absolute top-[20%]  left-[41%]">
+                                <Checkbox
+                                  className=" right-16 top-3"
+                                  onChange={() => {
+                                    handleCheckboxChange(user);
+                                  }}
+                                  checked={selectedCheckboxes.some(item => {
+                                    // Check if the label is selected
+                                    return item.id === user.id;
+                                  })}
+                                />
+                              </div>
                             </div>
                           );
                         })}
@@ -239,14 +251,15 @@ export default function ChatSelector() {
                             ref={groupNameRef}
                           />
                         </div>
-                        <div
+                        <button
                           className="p-4 dark:bg-[#22252f] w-[15%] rounded-lg ml-2 dark:text-white relative top-[10%] bg-[#F9FBFC] cursor-pointer"
+                          disabled={!creating ? false : true}
                           onClick={() => {
                             handleCreateGroup(close);
                           }}
                         >
                           {!creating ? 'Create' : 'loading..'}
-                        </div>
+                        </button>
                       </div>
                       <div className="text-red-500 relative top-[11%] ml-5">{groupError}</div>
                     </div>
@@ -270,7 +283,7 @@ export default function ChatSelector() {
               />
             )}
 
-            <div className="relative  flex flex-col   justify-start content-center overflow-scroll max-h-[85%] h-[85%] mt-8  ">
+            <div className="relative  flex flex-col   justify-start content-center overflow-scroll max-h-[95%] h-[95%] mt-8  ">
               {!newGroup
                 ? group.map((fr, index) => {
                   return (
@@ -282,8 +295,8 @@ export default function ChatSelector() {
                 : null}
             </div>
           </div>
-          <div className="w-full max-h-[50%]  flex flex-col flex-warp bg-[#F9FBFC]  dark:bg-[#121316] mt-10  overflow-hidden">
-            <div className="flex flex-wrap w-[90%] h-[5%]    justify-between content-end mt-3 ml-5 ">
+          <div className="w-full max-h-[50%]  flex flex-col flex-warp bg-[#F9FBFC]  dark:bg-[#121316] mt-5  overflow-hidden">
+            <div className="flex flex-wrap w-[90%] h-[5%]    justify-between content-end mt-5 ml-5 ">
               {back ? (
                 <i
                   className="fa-solid fa-arrow-left text-[20px] relative  cursor-pointer dark:text-white"
@@ -300,7 +313,7 @@ export default function ChatSelector() {
             </div>
             {back ? (
               <input
-                placeholder="Find Friends"
+                placeholder="Find Users"
                 className="p-4 bg-[#EFEFEF] w-[90%] rounded-lg ml-5 mt-4 dark:bg-[#22252F] dark:text-white outline-none border-none"
                 onChange={handleSearch}
                 ref={searhRef}

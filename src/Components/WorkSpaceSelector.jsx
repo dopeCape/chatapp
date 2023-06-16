@@ -18,11 +18,11 @@ export default function WorkSpaceSelector({ workspace, selected }) {
   const [list, setList] = useState([]);
   const [emailError, setEmailError] = useState(null);
   const handleSetWorkSpace = () => {
-    setSelected(workspace);
     const user = groupChat.filter(x => {
-      return x.name === 'general' && x.workspaceId === workspace.id;
+      return x.groupChat.name === 'general' && x.groupChat.workspaceId === workspace.id;
     });
     setSeleccteChat(user[0]);
+    setSelected(workspace);
   };
   const searchRef = useRef();
 

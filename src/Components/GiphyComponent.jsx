@@ -3,12 +3,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { search } from '../utils/helper';
 
 import { useChannel } from '@ably-labs/react-hooks';
-import { useWorkSpaceStore } from '../Stores/MainStore';
 export default function GiphyComponen({ user, me, chatId }) {
   const [sti, setSti] = useState([]);
 
   const [server_channel, _] = useChannel('server', () => { });
-  const workspace = useWorkSpaceStore(state => state.workspace);
   useEffect(() => {
     const feter = async () => {
       let res = await axios.get(
@@ -34,20 +32,18 @@ export default function GiphyComponen({ user, me, chatId }) {
         type: 'IMG',
         from: me.id,
         to: user.user,
-        chatId: chatId
+        chatId: chatId,
+
+        myChatRef: user.id
       });
     } else {
-      let friend = user.user.chatWorkSpaces.Friend.filter(x => {
-        return x.workspaceId === workspace.id;
-      });
-
       server_channel.publish('new-msg', {
         content: 'sticker',
         url: url,
         type: 'IMG',
         from: me.id,
         to: user.user.id,
-        friendId: friend[0].id,
+        friendId: user.user.chatWorkSpaces.Friend[0].id,
         chatId: chatId
       });
     }
@@ -93,3 +89,5 @@ export default function GiphyComponen({ user, me, chatId }) {
     </div>
   );
 }
+ 
+

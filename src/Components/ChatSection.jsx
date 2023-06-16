@@ -43,22 +43,26 @@ export default function ChatSection() {
   let group_ = useGroupChatStore(state => state.chats);
   let workspace = useWorkSpaceStore(state => state.workspace);
   const setRead = useChatStore(state => state.setUnReadToZero);
+  const setReadGroup = useGroupChatStore(state => state.setUnReadToZero);
   const setSelected = useSelectedStore(state => state.updateSelectedState);
   const screollRef = useRef();
   const chatRef = useRef();
 
   const changeChat = () => {
-    if (user !== null && user.name) {
+    if (user && user.groupChat !== undefined) {
       let y = [];
-      if (user !== null) {
+      let w;
+      if (user) {
         group_.forEach(x => {
-          if (x.id === user.id) {
-            y = x.msges;
-            setChatid(x.id);
+          if (x.groupChat.id === user.groupChat.id) {
+            y = x.groupChat.msges;
+            setChatid(x.groupChat.id);
+            w = x;
           }
         });
       }
       setChat(y);
+      handleRead(w, 'group');
     } else {
       let y = [];
       let w;
@@ -71,16 +75,23 @@ export default function ChatSection() {
           }
         });
         setChat(y);
-        handleRead(w);
+        handleRead(w, 'friend');
       }
     }
   };
-  const handleRead = chat => {
+  const handleRead = (chat, type) => {
     try {
       if (chat.unRead > 0) {
-        let id = chat.id;
-        server_channel.publish('unread-chat', { id });
-        setRead(id);
+        console.log(chat);
+        if (type === 'group') {
+          let chatRefId = chat.id;
+          server_channel.publish('unread-group-chat', { id: chatRefId });
+          setReadGroup(chatRefId);
+        } else {
+          let id = chat.id;
+          server_channel.publish('unread-chat', { id });
+          setRead(id);
+        }
       }
     } catch (error) {
       console.log(error);
@@ -95,7 +106,7 @@ export default function ChatSection() {
   let userChannelId = 'x';
   let meId = 'y';
   if (user != null) {
-    if (user.name) {
+    if (user.groupChat) {
       userChannelId = 'x';
     } else {
       userChannelId = user.user.id;
@@ -172,14 +183,19 @@ export default function ChatSection() {
             getDownloadURL(snapshot.ref).then(ur => {
               setUploding(false);
               url = ur;
-              if (user.name) {
+              if (user.groupChat) {
+                let to = user.groupChat.groupChatRef.map(x => {
+                  return x.user.user.id;
+                });
+
                 server_channel.publish('new-msg-group', {
                   content: fileExt,
                   url: url,
                   type: file_type,
                   from: me.id,
-                  to: user.user,
-                  chatId: chatId
+                  to: to,
+                  chatId: chatId,
+                  myChatRef: user.id
                 });
               } else {
                 let friend = user.user.chatWorkSpaces.Friend.filter(x => {
@@ -233,14 +249,17 @@ export default function ChatSection() {
 
         chatRef.current.value = '';
       } else {
-        console.log(user);
-        if (user.name) {
+        if (user.groupChat) {
+          let to = user.groupChat.groupChatRef.map(x => {
+            return x.user.user.id;
+          });
           server_channel.publish('new-msg-group', {
             content: chatRef.current.value,
             type: type,
             from: me.id,
-            to: user.user,
-            chatId: chatId
+            to: to,
+            chatId: chatId,
+            myChatRef: user.id
           });
         } else {
           let friend = user.user.chatWorkSpaces.Friend.filter(x => {
@@ -267,17 +286,20 @@ export default function ChatSection() {
     </div>
   ) : (
     <div className="w-full h-full flex flex-col bg-white dark:bg-[#2c2c2c]">
-      {user.name !== undefined ? (
+      {user.groupChat !== undefined ? (
         <div className="w-[100%] h-[10%] shadow-lg  flex    bg-white dark:bg-[#2c2c2c] dark:shadow-sm border-bl-md">
           <div className="mt-5 ml-4">
-            <AvatarGroup total={user.user.length <= 3 ? user.user.length : 3} spacing="small">
-              {user.user.map(x => {
-                return <Avatar alt={x.user.name} src={x.user.profilePic} />;
+            <AvatarGroup
+              total={user.groupChat.groupChatRef.length <= 3 ? user.groupChat.groupChatRef.length : 3}
+              spacing="small"
+            >
+              {user.groupChat.groupChatRef.map(x => {
+                return <Avatar alt={x.user.user.name} src={x.user.user.profilePic} />;
               })}
             </AvatarGroup>
           </div>
           <div className="text-[24px] font-bold ml-5 mt-4 dark:text-white cursor-pointer" onClick={setProfile}>
-            {user.name}
+            {user.groupChat.name}
           </div>
         </div>
       ) : (
@@ -297,8 +319,14 @@ export default function ChatSection() {
                 msg={msg}
                 chatId={chatId}
                 from={me.id}
-                type={user.name ? 'group' : 'user'}
-                to={user.name ? user.user : user.user.id}
+                type={user.groupChat ? 'group' : 'user'}
+                to={
+                  user.groupChat
+                    ? user.groupChat.groupChatRef.map(x => {
+                      return x.user.user.id;
+                    })
+                    : user.user.id
+                }
               />
             </div>
           );
@@ -326,7 +354,7 @@ export default function ChatSection() {
         </div>
       ) : null}
       {uploding ? (
-        <div className="w-[17%] flex flex-col shadow-2xl border-[1px] border-white rounded-md h-[23%] absolute right-[10%] top-[68%] dark:bg-black_i_like bg-white">
+        <div className="w-[17%] flex flex-col shadow-2xl border-[1px] border-white rounded-md h-[23%] absolute right-[25%] top-[68%] dark:bg-black_i_like bg-white">
           <div className="text-[#4D96DA] font-bold text-[24px] text-center m-3">Processing</div>
           <div className="lds-ring relative left-[33%]">
             <div></div>

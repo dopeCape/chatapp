@@ -28,7 +28,6 @@ export default function MsgElement({ msg, chatId, from, to, type }) {
         await axios.delete(msg.url);
       }
       if (type === 'group') {
-        console.log(to);
         server_channel.publish('delete-msg-group', {
           msgId: msg.id,
           chatId: chatId,

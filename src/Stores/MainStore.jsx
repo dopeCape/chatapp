@@ -199,8 +199,8 @@ const useGroupChatStore = create(
     updateChat: (w, i) => {
       let chats = get().chats;
       chats.forEach((x, j) => {
-        if (x.id === i) {
-          x.msges.push(w);
+        if (x.groupChatId === i) {
+          x.groupChat.msges.push(w);
           var element = chats[j];
           chats.splice(j, 1);
           chats.splice(0, 0, element);
@@ -217,11 +217,11 @@ const useGroupChatStore = create(
         })
       }));
     },
-    removeuser: (w, i, msg) => {
+    removeuser: (w, i) => {
       let x = get().chats;
       x.forEach(y => {
-        if (y.id === w) {
-          y.user = y.user.filter(z => {
+        if (y.groupChat.id === w) {
+          y.groupChat.groupChatRef = y.groupChat.groupChatRef.filter(z => {
             return z.id !== i;
           });
         }
@@ -231,10 +231,10 @@ const useGroupChatStore = create(
         chats: x
       }));
     },
-    removegroup: groupId => {
+    removegroup: groupChatRefId => {
       let x = get().chats;
       x = x.filter(y => {
-        return y.id !== groupId;
+        return y.id !== groupChatRefId;
       });
       set(state => ({
         chats: x
@@ -243,9 +243,10 @@ const useGroupChatStore = create(
     addUser: (w, i) => {
       set(state => ({
         chats: state.chats.map(x => {
-          if (x.id === i) {
-            x.user.push(w);
+          if (x.groupChatId === i) {
+            x.groupChat.groupChatRef.push(w);
           }
+
           return x;
         })
       }));
@@ -253,8 +254,8 @@ const useGroupChatStore = create(
     editMsg: (w, i, msg) => {
       let chats = get().chats;
       chats = chats.map(x => {
-        if (x.id === i) {
-          x.msges = x.msges.map(y => {
+        if (x.groupChat.id === i) {
+          x.groupChat.msges = x.groupChat.msges.map(y => {
             if (y.id === w) {
               y.content = msg;
             }
@@ -272,8 +273,8 @@ const useGroupChatStore = create(
       let chats = get().chats;
 
       chats = chats.map(x => {
-        if (x.id === i) {
-          x.msges = x.msges.filter(y => {
+        if (x.groupChat.id === i) {
+          x.groupChat.msges = x.groupChat.msges.filter(y => {
             return y.id !== w;
           });
         }
@@ -281,6 +282,29 @@ const useGroupChatStore = create(
         return x;
       });
       set(() => ({
+        chats: chats
+      }));
+    },
+    incrementUnRead: w => {
+      let chats = get().chats;
+      chats.forEach(x => {
+        if (x.groupChat.id === w) {
+          x.unRead = x.unRead + 1;
+        }
+      });
+
+      set(state => ({
+        chats: chats
+      }));
+    },
+    setUnReadToZero: w => {
+      let chats = get().chats;
+      chats.forEach(x => {
+        if (x.id === w) {
+          x.unRead = 0;
+        }
+      });
+      set(state => ({
         chats: chats
       }));
     }
