@@ -23,6 +23,7 @@ import {
   useWorkSpaceStore
 } from '../Stores/MainStore';
 import GiphyComponen from './GiphyComponent';
+import { instance } from '../axios';
 
 export default function ChatSection() {
   const [sticker, setSticker] = useState(false);
@@ -79,17 +80,38 @@ export default function ChatSection() {
       }
     }
   };
-  const handleRead = (chat, type) => {
+  const handleRead = async (chat, type) => {
     try {
       if (chat.unRead > 0) {
         console.log(chat);
         if (type === 'group') {
           let chatRefId = chat.id;
-          server_channel.publish('unread-group-chat', { id: chatRefId });
+          await instance.post(
+            '/gchat/unread',
+            {
+              id: chatRefId
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
+              }
+            }
+          );
+          // server_channel.publish('unread-group-chat', { id: chatRefId });
           setReadGroup(chatRefId);
         } else {
           let id = chat.id;
-          server_channel.publish('unread-chat', { id });
+          await instance.post(
+            '/user/handleread',
+            {
+              id: id
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
+              }
+            }
+          );
           setRead(id);
         }
       }
@@ -180,37 +202,52 @@ export default function ChatSection() {
           setUploding(true);
 
           uploadBytes(storageRef, file).then(snapshot => {
-            getDownloadURL(snapshot.ref).then(ur => {
+            getDownloadURL(snapshot.ref).then(async ur => {
               setUploding(false);
               url = ur;
               if (user.groupChat) {
                 let to = user.groupChat.groupChatRef.map(x => {
                   return x.user.user.id;
                 });
-
-                server_channel.publish('new-msg-group', {
-                  content: fileExt,
-                  url: url,
-                  type: file_type,
-                  from: me.id,
-                  to: to,
-                  chatId: chatId,
-                  myChatRef: user.id
-                });
+                await instance.post(
+                  '/msges/newgroupmsg',
+                  {
+                    content: fileExt,
+                    url: url,
+                    type: file_type,
+                    from: me.id,
+                    to: to,
+                    chatId: chatId,
+                    myChatRef: user.id
+                  },
+                  {
+                    headers: {
+                      Authorization: `Bearer ${accessToken}`
+                    }
+                  }
+                );
               } else {
                 let friend = user.user.chatWorkSpaces.Friend.filter(x => {
                   return x.workspaceId === workspace.id;
                 });
 
-                server_channel.publish('new-msg', {
-                  content: fileExt,
-                  url: url,
-                  type: file_type,
-                  from: me.id,
-                  to: user.user.id,
-                  chatId: chatId,
-                  friendId: friend[0].id
-                });
+                await instance.post(
+                  '/msges/newmsg',
+                  {
+                    content: fileExt,
+                    url: url,
+                    type: file_type,
+                    from: me.id,
+                    to: user.user.id,
+                    chatId: chatId,
+                    friendId: friend[0].id
+                  },
+                  {
+                    headers: {
+                      Authorization: `Bearer ${accessToken}`
+                    }
+                  }
+                );
               }
             });
           });
@@ -225,27 +262,36 @@ export default function ChatSection() {
   const scrollRef = useRef();
 
   const [server_channel, _] = useChannel('server', () => { });
+  let accessToken = localStorage.getItem('token');
 
   const handleSendMsg = async () => {
     if (chatRef.current.value !== '') {
       if (chat.length === 0) {
-        server_channel.publish('new-chat', {
-          user1: {
-            id: me.chatWorkSpaces.id,
-            user: {
-              id: me.id
-            }
+        await instance.post(
+          '/user/newchat',
+          {
+            user1: {
+              id: me.chatWorkSpaces.id,
+              user: {
+                id: me.id
+              }
+            },
+            user2: {
+              id: user.id,
+              user: {
+                id: user.user.id
+              }
+            },
+            workspace: workspace.id,
+            content: chatRef.current.value,
+            type: type
           },
-          user2: {
-            id: user.id,
-            user: {
-              id: user.user.id
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
             }
-          },
-          workspace: workspace.id,
-          content: chatRef.current.value,
-          type: type
-        });
+          }
+        );
 
         chatRef.current.value = '';
       } else {
@@ -253,27 +299,42 @@ export default function ChatSection() {
           let to = user.groupChat.groupChatRef.map(x => {
             return x.user.user.id;
           });
-          server_channel.publish('new-msg-group', {
-            content: chatRef.current.value,
-            type: type,
-            from: me.id,
-            to: to,
-            chatId: chatId,
-            myChatRef: user.id
-          });
+          await instance.post(
+            '/msges/newgroupmsg',
+            {
+              content: chatRef.current.value,
+              type: type,
+              from: me.id,
+              to: to,
+              chatId: chatId,
+              myChatRef: user.id
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
+              }
+            }
+          );
         } else {
           let friend = user.user.chatWorkSpaces.Friend.filter(x => {
             return x.workspaceId === workspace.id;
           });
-
-          server_channel.publish('new-msg', {
-            content: chatRef.current.value,
-            type: type,
-            from: me.id,
-            to: user.user.id,
-            chatId: chatId,
-            friendId: friend[0].id
-          });
+          await instance.post(
+            '/msges/newmsg',
+            {
+              content: chatRef.current.value,
+              type: type,
+              from: me.id,
+              to: user.user.id,
+              chatId: chatId,
+              friendId: friend[0].id
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
+              }
+            }
+          );
         }
         chatRef.current.value = '';
       }

@@ -1,4 +1,5 @@
 import axios, { Axios } from 'axios';
+import { instance } from '../axios';
 import React, { useEffect, useRef, useState } from 'react';
 import { search } from '../utils/helper';
 
@@ -19,33 +20,48 @@ export default function GiphyComponen({ user, me, chatId }) {
     feter();
   }, []);
   const searchRef = useRef();
+  const accessToken = localStorage.getItem('token');
   const handleSearch = e => {
     if (searchRef.current.value !== '') {
       fetchSearch(searchRef.current.value);
     }
   };
-  const handleSendSticker = url => {
+  const handleSendSticker = async url => {
     if (user.name) {
-      server_channel.publish('new-msg-group', {
-        content: 'sticker',
-        url: url,
-        type: 'IMG',
-        from: me.id,
-        to: user.user,
-        chatId: chatId,
-
-        myChatRef: user.id
-      });
+      await instance.post(
+        '/msges/newgroupmsg',
+        {
+          content: 'sticker',
+          url: url,
+          type: 'IMG',
+          from: me.id,
+          to: user.user,
+          chatId: chatId
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        }
+      );
     } else {
-      server_channel.publish('new-msg', {
-        content: 'sticker',
-        url: url,
-        type: 'IMG',
-        from: me.id,
-        to: user.user.id,
-        friendId: user.user.chatWorkSpaces.Friend[0].id,
-        chatId: chatId
-      });
+      await instance.post(
+        '/msges/newmsg',
+        {
+          content: 'sticker',
+          url: url,
+          type: 'IMG',
+          from: me.id,
+          to: user.user.id,
+          friendId: user.user.chatWorkSpaces.Friend[0].id,
+          chatId: chatId
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        }
+      );
     }
   };
   const fetchSearch = async query => {
@@ -89,5 +105,4 @@ export default function GiphyComponen({ user, me, chatId }) {
     </div>
   );
 }
- 
 

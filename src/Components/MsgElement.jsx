@@ -7,6 +7,7 @@ import ReactPlayer from 'react-player';
 import { getStorage, ref } from 'firebase/storage';
 
 import axios from 'axios';
+import { instance } from '../axios';
 
 export default function MsgElement({ msg, chatId, from, to, type }) {
   const me = useUserStore(state => state.user);
@@ -22,51 +23,86 @@ export default function MsgElement({ msg, chatId, from, to, type }) {
   };
 
   const [server_channel, _] = useChannel('server', () => { });
+  let accessToken = localStorage.getItem('token');
   const handleDelete = async close => {
     try {
       if (msg.type !== 'MSG' && msg.type !== 'CMD') {
         await axios.delete(msg.url);
       }
       if (type === 'group') {
-        server_channel.publish('delete-msg-group', {
-          msgId: msg.id,
-          chatId: chatId,
-          from,
-          to
-        });
+        await instance.post(
+          '/msges/deletemsggroup',
+          {
+            msgId: msg.id,
+            chatId: chatId,
+            from,
+            to
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          }
+        );
       } else {
-        server_channel.publish('delete-msg', {
-          msgId: msg.id,
-          chatId: chatId,
-          from,
-          to
-        });
+        await instance.post(
+          '/msges/deletemsg',
+          {
+            msgId: msg.id,
+            chatId: chatId,
+            from,
+            to
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          }
+        );
       }
       close();
     } catch (error) {
       console.log(error);
     }
   };
-  const handleEdit = e => {
+  const handleEdit = async e => {
     try {
       if (e.keyCode === 13 && value !== '') {
         if (type === 'group') {
-          server_channel.publish('edit-msg-group', {
-            from,
-            to,
-            msgId: msg.id,
-            chatId,
-            content: value
-          });
+          await instance.post(
+            '/msges/editmsggroup',
+            {
+              from,
+              to,
+              msgId: msg.id,
+              chatId,
+              content: value
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
+              }
+            }
+          );
+
           setEditin(false);
         } else {
-          server_channel.publish('edit-msg', {
-            from,
-            to,
-            msgId: msg.id,
-            chatId,
-            content: value
-          });
+          await instance.post(
+            '/msges/editmsg',
+            {
+              from,
+              to,
+              msgId: msg.id,
+              chatId,
+              content: value
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
+              }
+            }
+          );
+
           setEditin(false);
         }
       }
