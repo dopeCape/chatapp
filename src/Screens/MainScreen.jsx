@@ -86,19 +86,19 @@ export default function MainScreen() {
   }, []);
 
   return (
-    <div className="w-screen h-screen bg-black_i_like flex  flex-wrap justify-center content-center max-h-screen max-w-screen overflow-hidden ">
+    <div className="w-full h-full bg-black_i_like flex  flex-wrap justify-center content-center max-h-screen max-w-screen overflow-hidden rounded-[20px] border-[2px] border-[#353b43] ">
       {user === null ? (
         <img src={lodadinGif} alt="loadin.." />
       ) : user === 'logout' ? (
         <LoginScreen />
       ) : (
-        <div className="w-screen h-screen  flex felx-wrap  ">
+        <div className="w-full h-full  flex felx-wrap  ">
           {profile !== null ? (
-            <div className="w-[5%] h-full ">
+            <div className="w-[3%] h-full ">
               <SideBar setter={setScreen} type="half" />
             </div>
           ) : (
-            <div className="w-[18%] h-full ">
+            <div className="w-[6%] h-full ">
               <SideBar setter={setScreen} type="full" />
             </div>
           )}
@@ -106,7 +106,7 @@ export default function MainScreen() {
             <div className="h-full w-[25%]">
               <ChatSelector />
             </div>
-            <div className="h-full " style={{ width: `${profile !== null ? '50%' : '57%'}` }}>
+            <div className="h-full " style={{ width: `${profile !== null ? '50%' : '69%'}` }}>
               <ChatSection />
             </div>
             {profile !== null ? (

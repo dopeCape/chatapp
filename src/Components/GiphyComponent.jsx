@@ -1,7 +1,7 @@
 import axios, { Axios } from 'axios';
-import { instance } from '../axios';
 import React, { useEffect, useRef, useState } from 'react';
 import { search } from '../utils/helper';
+import { instance } from '../axios';
 
 import { useChannel } from '@ably-labs/react-hooks';
 export default function GiphyComponen({ user, me, chatId }) {
@@ -20,7 +20,7 @@ export default function GiphyComponen({ user, me, chatId }) {
     feter();
   }, []);
   const searchRef = useRef();
-  const accessToken = localStorage.getItem('token');
+  let accessToken = localStorage.getItem('token');
   const handleSearch = e => {
     if (searchRef.current.value !== '') {
       fetchSearch(searchRef.current.value);
@@ -78,8 +78,8 @@ export default function GiphyComponen({ user, me, chatId }) {
   };
 
   return (
-    <div className="flex flex-col w-full h-full">
-      <div className="p-2 bg-[#121316] dark:text-white w-[90%] rounded-lg mb-3  ">
+    <div className="flex flex-col w-full h-full bg-[#585B66] rounded-[5px]">
+      <div className="p-2 bg-[#40444A] dark:text-white w-[90%] rounded-lg mb-3 mt-1 ml-3   ">
         <input
           className="bg-transparent outline-none"
           placeholder="find stickers"
@@ -87,11 +87,11 @@ export default function GiphyComponen({ user, me, chatId }) {
           onChange={handleSearch}
         />
       </div>
-      <div className="w-full  gap-3 h-full grid grid-flow-row-dense grid-cols-3 auto-rows-max    max-h-full overflow-scroll border-white border-[1px]">
+      <div className="w-full  gap-3 h-full grid grid-flow-row-dense grid-cols-3 auto-rows-max    max-h-full overflow-scroll border-white ">
         {sti.map(x => {
           return (
             <div
-              className="w-full h-full bg-red-300 cursor-pointer"
+              className="w-full h-full bg-[#585B66] cursor-pointer "
               onClick={() => {
                 handleSendSticker(x.images.fixed_width.url);
               }}
@@ -106,3 +106,10 @@ export default function GiphyComponen({ user, me, chatId }) {
   );
 }
 
+  
+    
+      
+        
+        
+          
+        

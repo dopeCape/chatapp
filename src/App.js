@@ -1,7 +1,14 @@
-import "./App.css";
+import './App.css';
+import MainScreen from './Screens/MainScreen';
 
 function App() {
-  return <div className="App w-screen h-screen bg-black"></div>;
+  return (
+    <div className="App w-screen h-screen   bg-lessy_bg pl-[2.5%] pr-[2.5%] pb-[2.5%] pt-[5%]    max-h-screen max-w-screen overflow-hidden  ">
+      <div className="w-full h-full relative rounded-lg">
+        <MainScreen />
+      </div>
+    </div>
+  );
 }
 
 export default App;

@@ -7,13 +7,12 @@ import Loadingbar from '../Ellipsis-1.3s-200px(1).svg';
 import { useChatStore, useGroupChatStore, useUserStore, useWorkSpaceStore } from '../Stores/MainStore';
 import Popup from 'reactjs-popup';
 import { search } from '../utils/helper.js';
+import DropDown from './DropDown';
 
 export default function ChatSelector() {
   const [list, setList] = useState([]);
-  const [renderList, setRenderList] = useState([]);
 
   const [back, setBack] = useState(false);
-  const [newGroup, setNewGroup] = useState(false);
 
   let me = useUserStore(state => state.user);
   let chatStore = useChatStore(state => state.chats);
@@ -44,40 +43,10 @@ export default function ChatSelector() {
       setGroup(group_);
       console.log(group_);
     }
-
-    let temp_list = [];
-    if (selectedWorkspace) {
-      selectedWorkspace.chatWorkSpace.forEach(user => {
-        if (user.user && user.user.id !== me.id) {
-          temp_list.push(user);
-        }
-      });
-      setUsers(temp_list);
-      setRenderList(temp_list);
-    }
   }, [me, groupStore, chatStore, selectedWorkspace]);
-  const groupSeachRef = useRef('');
 
-  const handelSearchAddGroup = () => {
-    if (groupSeachRef.current.value === '') {
-      setRenderList(users);
-    } else {
-      setRenderList(search(users, groupSeachRef.current?.value, me));
-    }
-  };
   const searhRef = useRef();
 
-  const handleChangeBar = () => {
-    if (searhRef.current !== undefined) {
-      searhRef.current.value = '';
-      if (back) {
-        setBack(false);
-        setList([]);
-      } else {
-        setBack(true);
-      }
-    }
-  };
   useEffect(() => {
     setBack(false);
 
@@ -91,52 +60,7 @@ export default function ChatSelector() {
     { id: me.chatWorkSpaces.id, user: { id: me.id, name: me.name } }
   ]);
 
-  const handleCheckboxChange = label => {
-    setSelectedCheckboxes(prevSelected => {
-      const isLabelSelected = prevSelected.some(item => {
-        // Compare the properties of the objects
-        return item.id === label.id;
-      });
-
-      if (isLabelSelected) {
-        return prevSelected.filter(item => {
-          // Filter out the selected label
-          return item.id !== label.id;
-        });
-      } else {
-        return [...prevSelected, label];
-      }
-    });
-  };
   let friendRef = useRef();
-  const handleSeachFriends = async () => {
-    let q = friendRef.current.value;
-
-    try {
-    } catch (error) {
-      console.log(error);
-    }
-  };
-  const handleSearch = async () => {
-    let q = searhRef.current.value;
-    if (back) {
-      if (q) {
-        try {
-          selectedWorkspace.chatWorkSpace = selectedWorkspace.chatWorkSpace.filter(x => {
-            return x.id !== me.chatWorkSpaces.id;
-          });
-          let users = search(selectedWorkspace.chatWorkSpace, q, me);
-
-          setList(users);
-        } catch (error) {
-          console.log(error);
-        }
-      } else {
-        setList([]);
-      }
-    } else {
-    }
-  };
   const groupNameRef = useRef('');
   const [groupError, setGroupError] = useState(null);
   const accessToken = localStorage.getItem('token');
@@ -177,172 +101,19 @@ export default function ChatSelector() {
           Select a workspace
         </div>
       ) : (
-        <div className="w-full h-full flex  flex-col  bg-[#F9FBFC]  dark:bg-[#121316]  ">
-          <div className="w-full  h-[50%] h-max-[50%] flex flex-col flex-warp bg-[#F9FBFC]  dark:bg-[#121316]  mt-10">
-            <div className="flex flex-wrap w-full h-[5%]    ">
-              <div className="flex flex-wrap w-[90%] h-full justify-between content-end ml-5 mt-2 ">
-                <div className="text-[20px] font-extrabold relative bottom-1 cursor-pointer dark:text-white">Group</div>
-                <Popup
-                  trigger={<i class="fa-solid fa-plus dark:text-white mt-1"></i>}
-                  modal
-                  onClose={() => {
-                    setSelectedCheckboxes([
-                      {
-                        id: me.chatWorkSpaces.id,
-                        user: { id: me.id, name: me.name }
-                      }
-                    ]);
-                  }}
-                  closeOnDocumentClick={false}
-                >
-                  {close => (
-                    <div className="w-full h-full  flex flex-col">
-                      <div className="p-3 dark:bg-[#22252F] w-[50%] ml-5 h-[10%] rounded-lg mt-5 bg-[#F9FBFC]">
-                        <input
-                          className="bg-transparent dark:text-white w-full outline-none"
-                          placeholder="Find users"
-                          ref={groupSeachRef}
-                          onChange={handelSearchAddGroup}
-                        />
-                      </div>
-                      <div
-                        className="absolute top-[5%] right-[5%] text-red-500 font-extrabold cursor-pointer"
-                        onClick={() => {
-                          close();
-                        }}
-                      >
-                        X
-                      </div>
-
-                      <div className="w-full h-[60%] max-h-[60%] overflow-scroll flex-col flex">
-                        {renderList.map(user => {
-                          return (
-                            <div className="w-[50%] h-[30%] m-5 flex shadow-2xl dark:bg-[#22252F] rounded-lg ml-5 bg-[#F9FBFC] relative">
-                              <img alt={user.user.name} src={user.user.profilePic} />
-                              <div className="dark:text-white text-[18px] ml-5 mt-1"> {user.user.name}</div>
-
-                              <div className="absolute top-[20%]  left-[41%]">
-                                <Checkbox
-                                  className=" right-16 top-3"
-                                  onChange={() => {
-                                    handleCheckboxChange(user);
-                                  }}
-                                  checked={selectedCheckboxes.some(item => {
-                                    // Check if the label is selected
-                                    return item.id === user.id;
-                                  })}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="dark:text-white text-[22px] relative top-[10%] ml-5">
-                        Enter name for group(name can't be "general")
-                      </div>
-                      <div className="w-full flex relative top-[10%]  ">
-                        <div
-                          className="p-3 dark:bg-[#22252f] relative top-[12%] ml-5 w-[40%] rounded-lg  bg-[#F9FBFC]
-                          "
-                        >
-                          <input
-                            className=" bg-transparent outline-none dark:text-white w-full"
-                            placeholder="Group's name"
-                            ref={groupNameRef}
-                          />
-                        </div>
-                        <button
-                          className="p-4 dark:bg-[#22252f] w-[15%] rounded-lg ml-2 dark:text-white relative top-[10%] bg-[#F9FBFC] cursor-pointer"
-                          disabled={!creating ? false : true}
-                          onClick={() => {
-                            handleCreateGroup(close);
-                          }}
-                        >
-                          {!creating ? 'Create' : 'loading..'}
-                        </button>
-                      </div>
-                      <div className="text-red-500 relative top-[11%] ml-5">{groupError}</div>
-                    </div>
-                  )}
-                </Popup>
-              </div>
-            </div>
-
-            {newGroup ? (
-              <input
-                placeholder="Find Friends"
-                className="p-5 bg-[#EFEFEF] w-[90%] rounded-lg ml-5  dark:bg-[#22252F] dark:text-white outline-none border-none "
-                onChange={handleSearch}
-                ref={searhRef}
-              />
-            ) : (
-              <input
-                placeholder="Search Messages"
-                className="p-4 bg-[#EFEFEF] w-[90%] rounded-lg ml-5 mt-4 dark:bg-[#22252F] dark:text-white outline-none border-none"
-                ref={searhRef}
-              />
-            )}
-
-            <div className="relative  flex flex-col   justify-start content-center overflow-scroll max-h-[95%] h-[95%] mt-8  ">
-              {!newGroup
-                ? group.map((fr, index) => {
-                  return (
-                    <div className="w-[90%]">
-                      <UserElement user={fr} index={index} type={'group'} />
-                    </div>
-                  );
-                })
-                : null}
-            </div>
+        <div className="w-full h-full flex  flex-col  bg-[#2f3137]  ">
+          <div className=" border-b-[2px] border-[#353b43] h-[9%] w-full flex ">
+            <div className="text-[24px] text-[#F8F8F8] mt-3 ml-3 font-bold ">{selectedWorkspace.name}</div>
+            <i class="fa-solid fa-chevron-down mt-6 m-2 font-bold cursor-pointer text-[#F8F8F8] text-[14px]"></i>
           </div>
-          <div className="w-full max-h-[50%]  flex flex-col flex-warp bg-[#F9FBFC]  dark:bg-[#121316] mt-5  overflow-hidden">
-            <div className="flex flex-wrap w-[90%] h-[5%]    justify-between content-end mt-5 ml-5 ">
-              {back ? (
-                <i
-                  className="fa-solid fa-arrow-left text-[20px] relative  cursor-pointer dark:text-white"
-                  onClick={handleChangeBar}
-                ></i>
-              ) : (
-                <>{null}</>
-              )}
-
-              <div className="text-[20px] font-extrabold relative bottom- cursor-pointer dark:text-white ">
-                Direct Messages
-              </div>
-              {!back ? <i class="fa-solid fa-plus dark:text-white mt-1" onClick={handleChangeBar}></i> : <></>}
-            </div>
-            {back ? (
-              <input
-                placeholder="Find Users"
-                className="p-4 bg-[#EFEFEF] w-[90%] rounded-lg ml-5 mt-4 dark:bg-[#22252F] dark:text-white outline-none border-none"
-                onChange={handleSearch}
-                ref={searhRef}
-              />
-            ) : (
-              <input
-                placeholder="Search Messages"
-                className="p-4 bg-[#EFEFEF] w-[90%] rounded-lg ml-5 mt-4 dark:bg-[#22252F] dark:text-white outline-none border-none"
-                ref={searhRef}
-              />
-            )}
-
-            <div className="relative top-[1%] flex flex-col   justify-start content-center overflow-scroll max-h-[80%] h-[80%]  ">
-              {!back
-                ? chat.map((fr, index) => {
-                  return (
-                    <div className="w-[90%]">
-                      <UserElement user={fr} index={index} type={'friend'} />
-                    </div>
-                  );
-                })
-                : list.map((fr, index) => {
-                  return (
-                    <div className="w-[90%]">
-                      <UserElement type={'find'} user={fr} index={index} me={me} />
-                    </div>
-                  );
-                })}
-            </div>
+          <div className="max-h-[33%] w-full">
+            <DropDown heading={'Channels'} list={group} type={'group'} />
+          </div>
+          <div className="max-h-[33%] w-full">
+            <DropDown heading={'Groups'} list={group} type={'group'} />
+          </div>
+          <div className="max-h-[33%] w-full">
+            <DropDown heading={'Direct message'} list={chat} type={'friend'} />
           </div>
         </div>
       )}

@@ -2,8 +2,10 @@
 /* eslint-disable no-unused-vars */
 import EmojiPicker from 'emoji-picker-react';
 import './Styles/loadingBar.css';
+import Search from '../search.svg';
+import Upload from '../heroicons_document-arrow-up.svg';
 
-import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
+import { getDownloadURL, getStorage, ref, uploadBytes, uploadBytesResumable } from 'firebase/storage';
 
 // Create a single supabase client for interacting with your database
 
@@ -12,8 +14,12 @@ import { AvatarGroup } from '@mui/material';
 import { Avatar } from '@mui/material';
 
 import { useChannel } from '@ably-labs/react-hooks';
+import GroupLogo from '../Frame 98.svg';
 
 import MsgElement from './MsgElement';
+import PaperClip from '../paperclip.svg';
+import Sticker from '../file.svg';
+
 import {
   useChatStore,
   useGroupChatStore,
@@ -23,15 +29,23 @@ import {
   useWorkSpaceStore
 } from '../Stores/MainStore';
 import GiphyComponen from './GiphyComponent';
+import Smile from '../smile.svg';
+import Phote from '../heroicons_photo.svg';
+
 import { instance } from '../axios';
 
 export default function ChatSection() {
   const [sticker, setSticker] = useState(false);
   const [chat, setChat] = useState([]);
+
   const [uploding, setUploding] = useState(false);
+  const [msgIndex, setMsgIndex] = useState(null);
+
+  const [uplodingPer, setUplodingPer] = useState(0);
   const [chatId, setChatid] = useState(null);
   const [type, setType] = useState('MSG');
   const [timeOut, addTimeout] = useState(null);
+  const [fileUpload, setFileUplaod] = useState(false);
 
   const [file, setFile] = useState();
   const fileRef = useRef();
@@ -48,6 +62,7 @@ export default function ChatSection() {
   const setSelected = useSelectedStore(state => state.updateSelectedState);
   const screollRef = useRef();
   const chatRef = useRef();
+  const [placeHolder, setPlaceHolder] = useState();
 
   const changeChat = () => {
     if (user && user.groupChat !== undefined) {
@@ -82,8 +97,8 @@ export default function ChatSection() {
   };
   const handleRead = async (chat, type) => {
     try {
+      console.log(chat);
       if (chat.unRead > 0) {
-        console.log(chat);
         if (type === 'group') {
           let chatRefId = chat.id;
           await instance.post(
@@ -123,6 +138,10 @@ export default function ChatSection() {
     setSelected(user);
   };
   useEffect(() => {
+    if (user) {
+      setPlaceHolder();
+    }
+
     changeChat();
   }, [user, chat_, group_]);
   let userChannelId = 'x';
@@ -158,10 +177,6 @@ export default function ChatSection() {
 
   const handleInputChange = e => {
     try {
-      e.target.style.height = 'auto';
-
-      e.target.style.height = e.scrollHeight + 'px';
-
       if (chatRef.current.value !== '') {
         chatUserChannel.publish('typing', { typing: true, chatId: chatId });
       } else {
@@ -188,11 +203,8 @@ export default function ChatSection() {
 
           let url;
           let file_type;
-          console.log(type);
 
           if (type === 'video/mp4') {
-            console.log(file);
-
             file_type = 'VIDEO';
           } else if (type === 'image/gif' || type === 'image/jpeg' || type === 'image/png' || type == 'image/webp') {
             file_type = 'IMG';
@@ -201,56 +213,80 @@ export default function ChatSection() {
           }
           setUploding(true);
 
-          uploadBytes(storageRef, file).then(snapshot => {
-            getDownloadURL(snapshot.ref).then(async ur => {
-              setUploding(false);
-              url = ur;
-              if (user.groupChat) {
-                let to = user.groupChat.groupChatRef.map(x => {
-                  return x.user.user.id;
-                });
-                await instance.post(
-                  '/msges/newgroupmsg',
-                  {
-                    content: fileExt,
-                    url: url,
-                    type: file_type,
-                    from: me.id,
-                    to: to,
-                    chatId: chatId,
-                    myChatRef: user.id
-                  },
-                  {
-                    headers: {
-                      Authorization: `Bearer ${accessToken}`
-                    }
-                  }
-                );
-              } else {
-                let friend = user.user.chatWorkSpaces.Friend.filter(x => {
-                  return x.workspaceId === workspace.id;
-                });
-
-                await instance.post(
-                  '/msges/newmsg',
-                  {
-                    content: fileExt,
-                    url: url,
-                    type: file_type,
-                    from: me.id,
-                    to: user.user.id,
-                    chatId: chatId,
-                    friendId: friend[0].id
-                  },
-                  {
-                    headers: {
-                      Authorization: `Bearer ${accessToken}`
-                    }
-                  }
-                );
+          const uploadTask = uploadBytesResumable(storageRef, file);
+          // Listen for state changes, errors, and completion of the upload.
+          uploadTask.on(
+            'state_changed',
+            snapshot => {
+              // Observe state change events such as progress, pause, and resume
+              // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              setUplodingPer(Math.trunc(progress));
+              switch (snapshot.state) {
+                case 'paused':
+                  console.log('Upload is paused');
+                  break;
+                case 'running':
+                  console.log('Upload is running');
+                  break;
               }
-            });
-          });
+            },
+            error => {
+              // Handle unsuccessful uploads
+            },
+            () => {
+              // Handle successful uploads on complete
+              // For instance, get the download URL: https://firebasestorage.googleapis.com/...
+              getDownloadURL(uploadTask.snapshot.ref).then(async ur => {
+                setUploding(false);
+                url = ur;
+                if (user.groupChat) {
+                  let to = user.groupChat.groupChatRef.map(x => {
+                    return x.user.user.id;
+                  });
+                  await instance.post(
+                    '/msges/newgroupmsg',
+                    {
+                      content: fileExt,
+                      url: url,
+                      type: file_type,
+                      from: me.id,
+                      to: to,
+                      chatId: chatId,
+                      myChatRef: user.id
+                    },
+                    {
+                      headers: {
+                        Authorization: `Bearer ${accessToken}`
+                      }
+                    }
+                  );
+                } else {
+                  let friend = user.user.chatWorkSpaces.Friend.filter(x => {
+                    return x.workspaceId === workspace.id;
+                  });
+
+                  await instance.post(
+                    '/msges/newmsg',
+                    {
+                      content: fileExt,
+                      url: url,
+                      type: file_type,
+                      from: me.id,
+                      to: user.user.id,
+                      chatId: chatId,
+                      friendId: friend[0].id
+                    },
+                    {
+                      headers: {
+                        Authorization: `Bearer ${accessToken}`
+                      }
+                    }
+                  );
+                }
+              });
+            }
+          );
         } else {
           alert('file size should be less than 10mb');
         }
@@ -264,8 +300,8 @@ export default function ChatSection() {
   const [server_channel, _] = useChannel('server', () => { });
   let accessToken = localStorage.getItem('token');
 
-  const handleSendMsg = async () => {
-    if (chatRef.current.value !== '') {
+  const handleSendMsg = async e => {
+    if (placeHolder !== '' && e.key === 'Enter' && !e.shiftKey) {
       if (chat.length === 0) {
         await instance.post(
           '/user/newchat',
@@ -294,6 +330,8 @@ export default function ChatSection() {
         );
 
         chatRef.current.value = '';
+
+        setPlaceHolder(`Message ${user.groupChat ? '#' + user.groupChat.name : user.user.name}`);
       } else {
         if (user.groupChat) {
           let to = user.groupChat.groupChatRef.map(x => {
@@ -337,7 +375,10 @@ export default function ChatSection() {
           );
         }
         chatRef.current.value = '';
+        setPlaceHolder(`Message ${user.groupChat ? '#' + user.groupChat.name : user.user.name}`);
       }
+    } else if (e.shiftKey && e.key === 'Enter') {
+      // chatRef.current.value = chatRef.current.value =;
     }
   };
 
@@ -346,49 +387,108 @@ export default function ChatSection() {
       Select a friend to start a conversation
     </div>
   ) : (
-    <div className="w-full h-full flex flex-col bg-white dark:bg-[#2c2c2c]">
+    <div className="w-full h-full flex flex-col bg-[#37393F]">
       {user.groupChat !== undefined ? (
-        <div className="w-[100%] h-[10%] shadow-lg  flex    bg-white dark:bg-[#2c2c2c] dark:shadow-sm border-bl-md">
-          <div className="mt-5 ml-4">
-            <AvatarGroup
-              total={user.groupChat.groupChatRef.length <= 3 ? user.groupChat.groupChatRef.length : 3}
-              spacing="small"
-            >
-              {user.groupChat.groupChatRef.map(x => {
-                return <Avatar alt={x.user.user.name} src={x.user.user.profilePic} />;
-              })}
-            </AvatarGroup>
-          </div>
-          <div className="text-[24px] font-bold ml-5 mt-4 dark:text-white cursor-pointer" onClick={setProfile}>
-            {user.groupChat.name}
+        <div className="w-[100%] h-[9%]   flex    bg-[#2F3137] border-[2px] border-none border-b-[#353B43] relative">
+          <img src={GroupLogo} alt={'Loading...'} className="rounded-[2px] h-[30px] w-[30px] mt-5 ml-5 mr-1    " />
+          <div className="text-[20px] font-[700]  mt-5  text-white">{user.groupChat.name}</div>
+          <i class="fa-solid fa-chevron-down mt-7 ml-1 text-[14px] font-bold cursor-pointer text-[#F8F8F8]"></i>
+          <div className="text-[#B4B4B4] mt-5 ml-8">{'Contains all exchanging informations for the company.'}</div>
+          <div className="h-[60%] w-[15%] bg-[#696D78] rounded-[10px] absolute right-[3%] top-[20%] flex p-3">
+            <img alt="" src={Search} className="mr-3" />
+            <input placeholder="Search..." className="bg-transparent outline-none text-white  w-[70%]" />
           </div>
         </div>
       ) : (
-        <div className="w-[100%] h-[10%] shadow-lg  flex    bg-white dark:bg-[#16171B] dark:shadow-sm rounded-bl-3xl">
-          <img src={user.user.profilePic} alt={'Loading...'} className="rounded-full h-[70%] mt-3 m-4 " />
-          <div className="text-[24px] font-bold ml-5 mt-4 dark:text-white cursor-pointer" onClick={setProfile}>
-            {user.user.name}
+        <div className="w-[100%] h-[9%]   flex    bg-[#2F3137] border-[2px] border-none border-b-[#353B43] relative">
+          <img src={user.user.profilePic} alt={'Loading...'} className="rounded-[2px] h-[45px] w-[45px] mt-3 m-4 " />
+          <div className="text-[20px] font-[700] ml-2 mt-5  text-white">{user.user.name}</div>
+          <div className="h-[60%] w-[15%] bg-[#696D78] rounded-[10px] absolute right-[3%] top-[20%] flex p-3">
+            <img alt="" src={Search} className="mr-3" />
+            <input placeholder="Search..." className="bg-transparent outline-none text-white  w-[70%]" />
           </div>
         </div>
       )}
 
-      <div className="w-full h-[80%] max-h-[80%] flex flex-col overflow-scroll ">
+      <div className="w-full h-[80%] max-h-[80%] flex flex-col overflow-y-scroll  ">
+        {' '}
         {chat.map((msg, index) => {
-          return (
-            <div className=" " key={index}>
-              <MsgElement
-                msg={msg}
-                chatId={chatId}
-                from={me.id}
-                type={user.groupChat ? 'group' : 'user'}
-                to={
-                  user.groupChat
-                    ? user.groupChat.groupChatRef.map(x => {
-                      return x.user.user.id;
-                    })
-                    : user.user.id
-                }
-              />
+          let pDate = new Date(msg.createdAt);
+          pDate.setHours(0, 0, 0, 0);
+          let today = new Date().setHours(0, 0, 0, 0);
+          let date;
+          if (pDate < today) {
+            date = `${pDate.getDate()} ${pDate.toLocaleString('default', { month: 'short' })}`;
+          } else {
+            date = 'today';
+          }
+          return pDate < today ? (
+            <div>
+              {index === 0 || new Date(chat.at(index - 1).createdAt).setHours(0, 0, 0, 0) < pDate ? (
+                <div className="flex">
+                  <div className="w-[48%] left-[2%]  border-[1px] h-0 relative top-3 border-[#515357]"></div>
+
+                  <div className="text-[#fbfbfb] ml-3 mr-3 text-center  w-[140px] ">{date}</div>
+
+                  <div className="w-[48%] right-[2%]  border-[1px] h-0  relative top-3 border-[#515357]"></div>
+                </div>
+              ) : null}
+              <div
+                className=" ml-6 "
+                key={index}
+                onClick={() => {
+                  setMsgIndex(index);
+                }}
+              >
+                <MsgElement
+                  msg={msg}
+                  chatId={chatId}
+                  from={me.id}
+                  clicked={msgIndex === index}
+                  type={user.groupChat ? 'group' : 'user'}
+                  to={
+                    user.groupChat
+                      ? user.groupChat.groupChatRef.map(x => {
+                        return x.user.user.id;
+                      })
+                      : user.user.id
+                  }
+                />
+              </div>
+            </div>
+          ) : (
+            <div>
+              {index === 0 || new Date(chat.at(index - 1).createdAt).setHours(0, 0, 0, 0) < pDate ? (
+                <div className="flex">
+                  <div className="w-[48%] left-[2%]  border-[1px] h-0 relative top-3 border-[#515357]"></div>
+
+                  <div className="text-[#fbfbfb] ml-3 mr-3 text-center w-[140px]   ">Today</div>
+
+                  <div className="w-[48%] right-[2%]  border-[1px] h-0  relative top-3 border-[#515357]"></div>
+                </div>
+              ) : null}
+              <div
+                className=" ml-6 "
+                key={index}
+                onClick={() => {
+                  setMsgIndex(index);
+                }}
+              >
+                <MsgElement
+                  msg={msg}
+                  chatId={chatId}
+                  clicked={msgIndex === index}
+                  from={me.id}
+                  type={user.groupChat ? 'group' : 'user'}
+                  to={
+                    user.groupChat
+                      ? user.groupChat.groupChatRef.map(x => {
+                        return x.user.user.id;
+                      })
+                      : user.user.id
+                  }
+                />
+              </div>
             </div>
           );
         })}
@@ -415,54 +515,96 @@ export default function ChatSection() {
         </div>
       ) : null}
       {uploding ? (
-        <div className="w-[17%] flex flex-col shadow-2xl border-[1px] border-white rounded-md h-[23%] absolute right-[25%] top-[68%] dark:bg-black_i_like bg-white">
-          <div className="text-[#4D96DA] font-bold text-[24px] text-center m-3">Processing</div>
-          <div className="lds-ring relative left-[33%]">
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
+        <div className="bg-[#585B66] rounded-[5px] w-[300px]  h-[130px] absolute top-[72%] right-[8%] text-white flex-col">
+          <div className="ml-5 mt-4 text-[20px] font-[700]">Uploading</div>
+          <div className="flex w-full ">
+            <div className="w-[70%] h-[25px] bg-black rounded-[5px] mt-5 ml-5">
+              <div
+                className="h-full  bg-gradient-to-r from-[#FFFFFF] via-[#1E6BFF] to-[#181683]  rounded-[5px]"
+                style={{ width: `${uplodingPer}%` }}
+              ></div>
+            </div>
+            <div className="mt-5 ml-3 ">{uplodingPer}%</div>
           </div>
-          <div className="text-[12px] dark:text-[#AEAEAE] ml-5 mb-3">Please wait while we upload your file</div>
         </div>
       ) : null}
-      <div className="p-3 bg-[#EFEFEF]  rounded-xl w-[80%] ml-16 dark:bg-[#22252F] flex justify-end mt-5">
+      <div className="p-4  pl-5 bg-[#40444A] rounded-[10px] w-[95%] ml-6 max-h-[20%]   flex justify-end     top-3  ">
         <input
           ref={chatRef}
           type="text"
-          className="bg-[#EFEFEF]  outline-none border-none w-[80%] max-w-[80%] dark:bg-[#22252F] dark:text-white  resize-none overflow-hidden min-h-[50%] "
+          contentEditable
+          className="bg-[#40444A]  outline-none border-none w-[90%] max-w-[90%]  text-white  resize-none  min-h-[30%]  "
           onChange={handleInputChange}
-        />
-        <i
-          class="fa-regular fa-face-smile dark:text-white text-[22px] cursor-pointer mr-3"
+          placeholder={`Message ${user.groupChat ? '#' + user.groupChat.name : user.user.name}`}
+          onKeyDown={handleSendMsg}
+          tabIndex={0}
+        ></input>
+
+        <img
+          alt="Link"
+          src={PaperClip}
+          class="text-white text-[22px] w-[30px] h-[30px]  cursor-pointer mr-3"
           onClick={() => {
-            setEmoji(!emoji);
-            if (sticker) {
-              setSticker(false);
-            }
+            setEmoji(false);
+            setSticker(false);
+            setFileUplaod(!fileUpload);
           }}
-        ></i>
-        <i
-          class="fa-solid fa-link dark:text-white text-[22px]  cursor-pointer mr-3"
-          onClick={() => {
-            fileRef.current.click();
-          }}
-        ></i>
+        ></img>
+        {fileUpload ? (
+          <div className="absolute w-[230px] h-[150px] flex flex-col bg-[#585B66] top-[69%] right-[8%] text-white rounded-[5px]">
+            <div className="mt-5 ml-4 font-[700]">Upload from computer</div>
+            <div className="flex  ">
+              <img alt="Document" src={Upload} className="w-[30px] h-[30px] mr-3 mb-5 ml-4 mt-4 cursor-pointer" />
+              <div
+                className="mt-4 cursor-pointer "
+                onClick={() => {
+                  fileRef.current.click();
+                  setFileUplaod(false);
+                }}
+              >
+                Upload document
+              </div>
+            </div>
+            <div className="flex ">
+              <img alt="Document" src={Phote} className="w-[30px] h-[30px] mr-3 ml-4 cursor-pointer" />
+              <div
+                className="cursor-pointer"
+                onClick={() => {
+                  fileRef.current.click();
+                  setFileUplaod(false);
+                }}
+              >
+                Upload photo or video
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <input className="hidden" type="file" ref={fileRef} onChange={handleFileChange} />
-
-        <i
-          className="fa-solid fa-note-sticky dark:text-white text-[22px]  cursor-pointer mr-3 "
+        <img
+          src={Smile}
+          alt="Emoji"
+          class=" dark:text-white text-[22px] cursor-pointer mr-3 w-[30px] h-[30px]"
           onClick={() => {
-            setSticker(!sticker);
-            if (emoji) {
-              setEmoji(false);
-            }
+            setSticker(false);
+            setFileUplaod(false);
+            setEmoji(!emoji);
           }}
-        ></i>
+        ></img>
+        <img
+          src={Sticker}
+          alt="Sticker"
+          className="text-white text-[22px]  cursor-pointer mr-3 w-[30px] h-[30px] "
+          onClick={() => {
+            setFileUplaod(false);
+            setEmoji(false);
+            setSticker(!sticker);
+          }}
+        ></img>
+        {/* <i class="fa-solid fa-paper-plane dark:text-white text-[22px]  cursor-pointer" onClick={handleSendMsg}></i>  send button*/}
 
-        <i class="fa-solid fa-paper-plane dark:text-white text-[22px]  cursor-pointer" onClick={handleSendMsg}></i>
         {sticker ? (
-          <div className="absolute w-[30%] h-[30%]  top-[60%]">
+          <div className="absolute w-[300px] h-[250px]  top-[57%]">
             <GiphyComponen user={user} me={me} chatId={chatId} />
           </div>
         ) : null}

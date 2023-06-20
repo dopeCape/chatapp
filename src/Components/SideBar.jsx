@@ -5,6 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import Popup from 'reactjs-popup';
 import 'reactjs-popup/dist/index.css';
+import Seting from '../settings.svg';
 
 import { useChannel } from '@ably-labs/react-hooks';
 
@@ -25,7 +26,7 @@ export default function SideBar({ setter, type }) {
   const [open, setOpen] = useState(false);
   const [req, setReq] = useState(false);
   const [error, setError] = useState(null);
-  const [clicked, setClicked] = useState(null);
+  const [clicked, setClicked] = useState(0);
 
   function array_move(arr, old_index, new_index) {
     if (new_index >= arr.length) {
@@ -206,8 +207,6 @@ export default function SideBar({ setter, type }) {
       if (data.data.msg.msg.from.id !== me.id) {
         inclrementGroupUnRead(data.data.chatId);
       }
-      if (selectedChatStore.id === data.data.chatRefId) {
-      }
 
       updateGroupChat(data.data.msg.msg, data.data.chatId);
     });
@@ -282,58 +281,13 @@ export default function SideBar({ setter, type }) {
     };
   });
 
-  // const [my_channel] = useChannel(me.id, (msg) => {
-  //   console.log(msg);
-  // });
-  //
-  // my_channel.subscribe("send-request", (msg) => {
-  //   let to = msg.data;
-  //   updateUser(to);
-  // });
-  // my_channel.subscribe("new-memeber-workspace", (msg) => {
-  //   handleNewMemberInWokrSpace(msg);
-  // });
-  // my_channel.subscribe("new-workspace", (msg) => {
-  //   addWorkSpace(msg.data.workspace);
-  //   addGroupChat(msg.data.GroupChat);
-  // });
-  // my_channel.subscribe("accept-request", (msg) => {
-  //   let to = msg.data.from_user;
-  //   let chatId = msg.data.chatId;
-  //
-  //   changeMsgState({ chatId: chatId, msges: [] });
-  //
-  //   updateUser(to);
-  // });
-  //
-  // my_channel.subscribe("new-msg", (data) => {
-  //   let chatId = data.data.chatId;
-  //   let temp_msg = msges.get(chatId);
-  //   temp_msg.msges = data.data.msges;
-  //   msges.set(chatId, temp_msg);
-  //
-  //   let index;
-  //   me.friends.forEach((x, i) => {
-  //     if (x.chatId === chatId) {
-  //       index = i;
-  //     }
-  //   });
-  //   me.friends = array_move(me.friends, index, 0);
-  //
-  //   updateUser(me);
-  //   msgSetter(msges);
-  // });
-
   return type === 'full' ? (
-    <div className="w-full h-full flex flex-col felx-wrap bg-white dark:bg-black_i_like ">
-      <img alt={me.name} src={me.profilePic} className="rounded-full w-[45%] h-[15%] mt-[15%] ml-[25%]" />
-      <div className="dark:text-white font-bold text-[24px] ml-5">{me.name}</div>
-      <div className="dark:text-white font-bold text-[24px] ml-5 mt-8">Workspaces</div>
+    <div className="w-full h-full flex flex-col felx-wrap bg-[#202226] border-r-[2px] border-[#353b43]   ">
       {me.chatWorkSpaces.workspaces !== undefined ? (
-        <div className="max-h-[30%] h-[30%] w-full overflow-scroll flex flex-col mt-4 ">
+        <div className="max-h-[70%]  w-full overflow-scroll flex flex-col mt-4 ">
           {me.chatWorkSpaces.workspaces.map((workspace, index) => {
             return (
-              <div className="w-[90%] h-[13%]  ml-3 mb-5" key={index} onClick={() => handleClicked(index)}>
+              <div className="w-[70px] h-[70px]  ml-3 mb-2" key={index} onClick={() => handleClicked(index)}>
                 <WorkSpaceSelector workspace={workspace} selected={clicked === index ? true : false} />
               </div>
             );
@@ -353,9 +307,9 @@ export default function SideBar({ setter, type }) {
             setOpen(false);
           }}
           trigger={
-            <div className="dark:text-white p-2 w-[90%] ml-3 mt-5 bg-[#EFEFEF] dark:bg-[#1E1E1E] hover:bg-[#4D96DA] dark:hover:bg-[#4D96DA] rounded-md cursor-pointer">
-              Add Workspace
-            </div>
+            <button className="rounded-[10px] bg-[#85858526] h-[60px] w-[60px] ml-4 pt-1    ">
+              <i class="fa-solid fa-plus text-white text-[25px]"></i>
+            </button>
           }
           position="center"
           modal
@@ -384,20 +338,15 @@ export default function SideBar({ setter, type }) {
         </Popup>
       ) : null}
 
-      <button className="bg-red dark:text-white mt-10" onClick={handleLogout}>
+      <button className="bg-red dark:text-white  absolute bottom-[13%] ml-4" onClick={handleLogout}>
         Logout
       </button>
-      <div className="flex flex-wrap flex-col  w-[2.5%] h-[10%] justify-between content-center absolute  bottom-[5%] ml-6 dark:bg-[#040706] rounded-3xl pt-2 pb-2 ">
-        <i className="fa-solid fa-sun text-[#4D96DA] text-[20px] cursor-pointer" onClick={removeDarkMode}></i>
-
-        <i
-          class="fa-solid fa-moon text-[#4D96DA] text-[20px] relative left-[5%] cursor-pointer"
-          onClick={addDarkMode}
-        ></i>
-      </div>
+      <button className="w-[60px] h-[60px] bg-[#85858526] rounded-[10px] absolute bottom-[2%] ml-4  ">
+        <img alt="setting" className="pl-4" src={Seting} />
+      </button>
     </div>
   ) : (
-    <div className="w-full h-full flex flex-col flex-wrap justify-start content-center bg-white dark:bg-[#16171B]">
+    <div className="w-full h-full flex flex-col  flex-wrap justify-start content-center bg-white dark:bg-[#16171B]">
       <i
         class="fa-solid fa-arrow-right  dark:text-white mt-12 text-[30px] cursor-pointer "
         onClick={handleProfileSetter}
