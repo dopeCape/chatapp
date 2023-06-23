@@ -159,7 +159,6 @@ export default function ChatSection() {
 
   useEffect(() => {
     userChaneel.subscribe('typing', data => {
-      console.log(data.data);
       setTyping(data.data.chatId, data.data.typing);
       if (timeOut != null) {
         clearTimeout(timeOut);
@@ -176,15 +175,15 @@ export default function ChatSection() {
   }, []);
 
   const handleInputChange = e => {
-    try {
-      if (chatRef.current.value !== '') {
-        chatUserChannel.publish('typing', { typing: true, chatId: chatId });
-      } else {
-        chatUserChannel.publish('typing', { typing: false, chatId: chatId });
-      }
-    } catch (error) {
-      console.log(error);
-    }
+    // try {
+    //   if (chatRef.current.value !== '') {
+    //     chatUserChannel.publish('typing', { typing: true, chatId: chatId });
+    //   } else {
+    //     chatUserChannel.publish('typing', { typing: false, chatId: chatId });
+    //   }
+    // } catch (error) {
+    //   console.log(error);
+    // }
   };
 
   const handleFileChange = async e => {
@@ -262,27 +261,56 @@ export default function ChatSection() {
                     }
                   );
                 } else {
-                  let friend = user.user.chatWorkSpaces.Friend.filter(x => {
-                    return x.workspaceId === workspace.id;
-                  });
-
-                  await instance.post(
-                    '/msges/newmsg',
-                    {
-                      content: fileExt,
-                      url: url,
-                      type: file_type,
-                      from: me.id,
-                      to: user.user.id,
-                      chatId: chatId,
-                      friendId: friend[0].id
-                    },
-                    {
-                      headers: {
-                        Authorization: `Bearer ${accessToken}`
+                  if (chat.length === 0) {
+                    await instance.post(
+                      '/user/newchat',
+                      {
+                        user1: {
+                          id: me.chatWorkSpaces.id,
+                          user: {
+                            id: me.id
+                          }
+                        },
+                        user2: {
+                          id: user.id,
+                          user: {
+                            id: user.user.id
+                          }
+                        },
+                        workspace: workspace.id,
+                        content: fileExt,
+                        url: url,
+                        type: file_type
+                      },
+                      {
+                        headers: {
+                          Authorization: `Bearer ${accessToken}`
+                        }
                       }
-                    }
-                  );
+                    );
+                  } else {
+                    let friend = user.user.chatWorkSpaces.Friend.filter(x => {
+                      return x.workspaceId === workspace.id;
+                    });
+
+                    await instance.post(
+                      '/msges/newmsg',
+                      {
+                        content: fileExt,
+                        url: url,
+                        type: file_type,
+                        from: me.id,
+                        to: user.user.id,
+                        chatId: chatId,
+                        friendId: friend[0].id
+                      },
+                      {
+                        headers: {
+                          Authorization: `Bearer ${accessToken}`
+                        }
+                      }
+                    );
+                  }
                 }
               });
             }
@@ -605,7 +633,7 @@ export default function ChatSection() {
 
         {sticker ? (
           <div className="absolute w-[300px] h-[250px]  top-[57%]">
-            <GiphyComponen user={user} me={me} chatId={chatId} />
+            <GiphyComponen user={user} me={me} chatId={chatId} type={chat.length === 0 ? 'new' : null} />
           </div>
         ) : null}
       </div>

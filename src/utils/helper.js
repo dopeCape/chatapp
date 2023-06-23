@@ -42,7 +42,20 @@ function search(users, query, user) {
   return results;
 }
 
-function chatSort(a, b) { }
+function simpleSearch(users, query) {
+  try {
+    let results = users.map(object => {
+      const similarity = calculateLevenshteinDistance(query, object.user.name.toLowerCase());
+      return { object, similarity };
+    });
 
-function groupSort(a, b) { }
-export { search };
+    // Sort the results based on similarity
+    results.sort((a, b) => a.similarity - b.similarity);
+    results = results.map(x => x.object);
+
+    return results;
+  } catch (error) {
+    console.log(error);
+  }
+}
+export { search, simpleSearch };

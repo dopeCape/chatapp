@@ -26,7 +26,7 @@ export default function DropDown({ heading, list, type }) {
   const AddChatPopup = styled(Popup)`
     &-content {
       border: none;
-      height: 400px;
+      height: 300px;
       padding: 0;
       width: 600px;
       border-radius: 10px;
@@ -50,7 +50,7 @@ export default function DropDown({ heading, list, type }) {
         <div className="text-[15px]  text-[#fbfbfb] mb-1">{heading}</div>
       </div>
       {open ? (
-        <div className="max-h-[80%] w-full flex  flex-col   ">
+        <div className="max-h-[80%] w-full flex  flex-col overflow-scroll   ">
           {fchat.map((element, i) => {
             return <Useruser user={element} />;
           })}

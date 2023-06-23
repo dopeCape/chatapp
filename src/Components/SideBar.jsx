@@ -21,12 +21,15 @@ import {
 import { instance } from '../axios';
 import WorkSpaceSelector from './WorkSpaceSelector';
 import { setRef } from '@mui/material';
+import { styled } from 'styled-components';
+import WorkSpaceCreatePopUp from './WorkSpaceCreatePopUp';
 
 export default function SideBar({ setter, type }) {
   const [open, setOpen] = useState(false);
   const [req, setReq] = useState(false);
   const [error, setError] = useState(null);
   const [clicked, setClicked] = useState(0);
+  const [worspacePopUpSize, setWorspacePupUpSize] = useState(600);
 
   function array_move(arr, old_index, new_index) {
     if (new_index >= arr.length) {
@@ -107,11 +110,8 @@ export default function SideBar({ setter, type }) {
             }
           }
         );
-
         workspaceNameRef.current.value = '';
-
         // me.chatWorkSpaces = res.data.workspace_.workspaces;
-
         if (res.data.workspace_ === 'P2002') {
           setError('Workspace name should be unique');
           setReq(false);
@@ -167,6 +167,10 @@ export default function SideBar({ setter, type }) {
     my_channel.subscribe('new-chat', msg => {
       let new_chat = msg.data.data;
       addChat(new_chat);
+      if (new_chat.friend.user.id === selectedChatStore.user.id) {
+        console.log(new_chat);
+        updateSelectedChatStore(new_chat.friend);
+      }
       addUndread(msg.data.friendId);
     });
     my_channel.subscribe('new-memeber-group', msg => {
@@ -280,6 +284,15 @@ export default function SideBar({ setter, type }) {
       my_channel.unsubscribe('new-memeber-group');
     };
   });
+  const CreateWorkspacePopUp = styled(Popup)`
+    &-content {
+      border: none;
+      height: ${({ height }) => height}px;
+      padding: 0;
+      width: 730px;
+      border-radius: 10px;
+    }
+  `;
 
   return type === 'full' ? (
     <div className="w-full h-full flex flex-col felx-wrap bg-[#202226] border-r-[2px] border-[#353b43]   ">
@@ -299,45 +312,21 @@ export default function SideBar({ setter, type }) {
       <div></div>
 
       {me.admin ? (
-        <Popup
-          open={open}
-          closeOnDocumentClick={!req}
-          onClose={() => {
-            setError(null);
-            setOpen(false);
-          }}
+        <CreateWorkspacePopUp
+          height={worspacePopUpSize}
+          modal
+          closeOnDocumentClick={false}
+          position="center center"
+          closeOnEscape={false}
           trigger={
             <button className="rounded-[10px] bg-[#85858526] h-[60px] w-[60px] ml-4 pt-1    ">
               <i class="fa-solid fa-plus text-white text-[25px]"></i>
             </button>
           }
-          position="center"
-          modal
         >
-          {close => (
-            <div className="flex flex-col">
-              <div className="flex  w-full h-[70%] ">
-                <input
-                  ref={workspaceNameRef}
-                  placeholder="Workspace name"
-                  className="dark:bg-[#1E1E1E] p-1 w-[80%] h-[50px]  text-white dark:text-white outline-none bg-gray_i_like"
-                />
-                <button
-                  disabled={req}
-                  className="dark:bg-[#1E1E1E] dark:text-white ml-3 flex flex-wrap justify-center content-center pl-1 pr-1 w-[20%] cursor-pointer bg-gray_i_like "
-                  onClick={() => {
-                    handleCreateWorkSpace(close);
-                  }}
-                >
-                  {req ? <img src={Loadingbar} alt="loadin..." /> : 'create'}
-                </button>
-              </div>
-              <div className="text-red-600 text-[18px] mt-1 ">{error}</div>
-            </div>
-          )}
-        </Popup>
+          {close => <WorkSpaceCreatePopUp close={close} setSize={setWorspacePupUpSize} />}
+        </CreateWorkspacePopUp>
       ) : null}
-
       <button className="bg-red dark:text-white  absolute bottom-[13%] ml-4" onClick={handleLogout}>
         Logout
       </button>

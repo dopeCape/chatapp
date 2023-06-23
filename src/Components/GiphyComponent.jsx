@@ -3,9 +3,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { search } from '../utils/helper';
 import { instance } from '../axios';
 
+import { useWorkSpaceStore } from '../Stores/MainStore';
 import { useChannel } from '@ably-labs/react-hooks';
-export default function GiphyComponen({ user, me, chatId }) {
+export default function GiphyComponen({ user, me, chatId, type }) {
   const [sti, setSti] = useState([]);
+  const workspace = useWorkSpaceStore(state => state.workspace);
 
   const [server_channel, _] = useChannel('server', () => { });
   useEffect(() => {
@@ -19,8 +21,8 @@ export default function GiphyComponen({ user, me, chatId }) {
     };
     feter();
   }, []);
-  const searchRef = useRef();
   let accessToken = localStorage.getItem('token');
+  const searchRef = useRef();
   const handleSearch = e => {
     if (searchRef.current.value !== '') {
       fetchSearch(searchRef.current.value);
@@ -45,23 +47,51 @@ export default function GiphyComponen({ user, me, chatId }) {
         }
       );
     } else {
-      await instance.post(
-        '/msges/newmsg',
-        {
-          content: 'sticker',
-          url: url,
-          type: 'IMG',
-          from: me.id,
-          to: user.user.id,
-          friendId: user.user.chatWorkSpaces.Friend[0].id,
-          chatId: chatId
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`
+      if (type === 'new') {
+        await instance.post(
+          '/user/newchat',
+          {
+            user1: {
+              id: me.chatWorkSpaces.id,
+              user: {
+                id: me.id
+              }
+            },
+            user2: {
+              id: user.id,
+              user: {
+                id: user.user.id
+              }
+            },
+            workspace: workspace.id,
+            content: 'sticker',
+            url: url,
+            type: 'IMG'
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
           }
-        }
-      );
+        );
+      } else {
+        await instance.post(
+          '/msges/newmsg',
+          {
+            content: 'sticker',
+            url: url,
+            type: 'IMG',
+            from: me.id,
+            to: user.user.id,
+            chatId: chatId
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          }
+        );
+      }
     }
   };
   const fetchSearch = async query => {
@@ -78,8 +108,8 @@ export default function GiphyComponen({ user, me, chatId }) {
   };
 
   return (
-    <div className="flex flex-col w-full h-full bg-[#585B66] rounded-[5px]">
-      <div className="p-2 bg-[#40444A] dark:text-white w-[90%] rounded-lg mb-3 mt-1 ml-3   ">
+    <div className="flex flex-col w-full h-full">
+      <div className="p-2 bg-[#121316] dark:text-white w-[90%] rounded-lg mb-3  ">
         <input
           className="bg-transparent outline-none"
           placeholder="find stickers"
@@ -87,11 +117,11 @@ export default function GiphyComponen({ user, me, chatId }) {
           onChange={handleSearch}
         />
       </div>
-      <div className="w-full  gap-3 h-full grid grid-flow-row-dense grid-cols-3 auto-rows-max    max-h-full overflow-scroll border-white ">
+      <div className="w-full  gap-3 h-full grid grid-flow-row-dense grid-cols-3 auto-rows-max    max-h-full overflow-scroll border-white border-[1px]">
         {sti.map(x => {
           return (
             <div
-              className="w-full h-full bg-[#585B66] cursor-pointer "
+              className="w-full h-full bg-red-300 cursor-pointer"
               onClick={() => {
                 handleSendSticker(x.images.fixed_width.url);
               }}
@@ -113,3 +143,7 @@ export default function GiphyComponen({ user, me, chatId }) {
         
           
         
+      
+        
+        
+      

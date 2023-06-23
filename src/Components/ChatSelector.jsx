@@ -106,10 +106,10 @@ export default function ChatSelector() {
             <div className="text-[24px] text-[#F8F8F8] mt-3 ml-3 font-bold ">{selectedWorkspace.name}</div>
             <i class="fa-solid fa-chevron-down mt-6 m-2 font-bold cursor-pointer text-[#F8F8F8] text-[14px]"></i>
           </div>
-          <div className="max-h-[33%] w-full">
+          <div className="max-h-[33%] w-full ">
             <DropDown heading={'Channels'} list={group} type={'group'} />
           </div>
-          <div className="max-h-[33%] w-full">
+          <div className="max-h-[33%] w-full ">
             <DropDown heading={'Groups'} list={group} type={'group'} />
           </div>
           <div className="max-h-[33%] w-full">
