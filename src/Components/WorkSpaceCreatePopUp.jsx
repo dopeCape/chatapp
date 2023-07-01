@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Spinner from '../Spin-1s-200px.svg';
 import ProgressBar from 'progressbar.js';
 import Done from '../check logo.svg';
+import { isValidEmail } from '../utils/helper';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import Close from '../ph_x-bold.svg';
 import SuteCase from '../briefcase.svg';
@@ -123,7 +124,9 @@ export default function WorkSpaceCreatePopUp({ close, setSize }) {
     try {
       if (value !== '') {
         if (value.includes('@')) {
-          setSearchUsers([{ name: value, type: 'email' }]);
+          if (isValidEmail(value)) {
+            setSearchUsers([{ name: value, type: 'email' }]);
+          }
         } else {
           let res = await instance.post(
             '/user/search',
@@ -136,9 +139,8 @@ export default function WorkSpaceCreatePopUp({ close, setSize }) {
               }
             }
           );
-          res.data.users.filter(x => {
-            console.log(x.id, me.id);
-            return x.id != me.id;
+          res.data.users = res.data.users.filter(x => {
+            return x.id !== me.id;
           });
           setSearchUsers(res.data.users);
         }
@@ -325,8 +327,13 @@ export default function WorkSpaceCreatePopUp({ close, setSize }) {
           <input
             value={searchBar}
             onChange={e => {
-              setSearBar(e.target.value);
-              handleSearch(e.target.value);
+              if (e.target.value !== '') {
+                setSearBar(e.target.value);
+                handleSearch(e.target.value);
+              } else {
+                setSearBar(e.target.value);
+                setSearchUsers([]);
+              }
             }}
             className="w-[85%] ml-8 bg-[#40434B] outline-none p-3 rounded-[5px] text-white mt-4"
             placeholder="Enter email or name"
@@ -384,7 +391,7 @@ export default function WorkSpaceCreatePopUp({ close, setSize }) {
           )}
         </div>
       ) : screen === 3 ? (
-        <div className="w-full h-full flex flex-col flex-wrap justify-center content-center">
+        <div className="w-full h-full flex flex-wrap justify-center content-center">
           <div id="bar" className="bar w-[200px] h-[200px]"></div>
           <div className="mt-8 text-white font-bold">{processs}</div>
         </div>

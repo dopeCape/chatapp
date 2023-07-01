@@ -1,13 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { instance } from '../axios';
-import UserElement from './UserElement';
-import { Checkbox } from '@mui/material';
-
-import Loadingbar from '../Ellipsis-1.3s-200px(1).svg';
-import { useChatStore, useGroupChatStore, useUserStore, useWorkSpaceStore } from '../Stores/MainStore';
+import styled from '@emotion/styled';
 import Popup from 'reactjs-popup';
-import { search } from '../utils/helper.js';
+
+import { useChatStore, useGroupChatStore, useUserStore, useWorkSpaceStore } from '../Stores/MainStore';
 import DropDown from './DropDown';
+import WorkSpaceMenu from './WorkspaceMenu';
 
 export default function ChatSelector() {
   const [list, setList] = useState([]);
@@ -22,15 +20,23 @@ export default function ChatSelector() {
 
   const [chat, setChat] = useState([]);
   const [group, setGroup] = useState([]);
+
+  const [channel, setChannels] = useState([]);
   const [users, setUsers] = useState([]);
   useEffect(() => {
     let chat_ = [];
     let group_ = [];
 
+    let channel_ = [];
+
     if (selectedWorkspace != null) {
       groupStore.forEach(x => {
         if (x.groupChat.workspaceId === selectedWorkspace.id) {
-          group_.push(x);
+          if (x.groupChat.type === 'CHANNEL') {
+            channel_.push(x);
+          } else {
+            group_.push(x);
+          }
         }
       });
       chatStore.forEach(y => {
@@ -41,6 +47,7 @@ export default function ChatSelector() {
 
       setChat(chat_);
       setGroup(group_);
+      setChannels(channel_);
       console.log(group_);
     }
   }, [me, groupStore, chatStore, selectedWorkspace]);
@@ -66,7 +73,6 @@ export default function ChatSelector() {
   const accessToken = localStorage.getItem('token');
   const [creating, setCreatin] = useState(false);
   const handleCreateGroup = async close => {
-    console.log(selectedCheckboxes, groupNameRef.current.value);
     if (groupNameRef.current.value === '') {
       setGroupError('name cannot be empty');
     } else {
@@ -94,6 +100,16 @@ export default function ChatSelector() {
       }
     }
   };
+  const WorkspacePopup = styled(Popup)`
+    &-content {
+      border: none;
+      height: 400px;
+      padding: 0;
+      width: 360px;
+      border-radius: 10px;
+      background: #616061;
+    }
+  `;
   return (
     <div className="w-full h-full flex  flex-col  bg-[#F9FBFC]  dark:bg-[#22252F]  ">
       {selectedWorkspace === null ? (
@@ -101,13 +117,28 @@ export default function ChatSelector() {
           Select a workspace
         </div>
       ) : (
-        <div className="w-full h-full flex  flex-col  bg-[#2f3137]  ">
-          <div className=" border-b-[2px] border-[#353b43] h-[9%] w-full flex ">
-            <div className="text-[24px] text-[#F8F8F8] mt-3 ml-3 font-bold ">{selectedWorkspace.name}</div>
-            <i class="fa-solid fa-chevron-down mt-6 m-2 font-bold cursor-pointer text-[#F8F8F8] text-[14px]"></i>
-          </div>
+        <div className="w-full h-full flex  flex-col  bg-[#2f3137]   ">
+          <WorkspacePopup
+            position="bottom left"
+            arrow={false}
+            nested
+            trigger={
+              <div className="   h-[9%] w-full flex    ml-1  ">
+                <div className="text-[24px] text-[#F8F8F8] mt-3 ml-3 font-bold  cursor-pointer  ">
+                  {selectedWorkspace.name}
+                </div>
+                <i class="fa-solid fa-chevron-down mt-6 m-2 font-bold cursor-pointer text-[#F8F8F8] text-[14px]"></i>
+              </div>
+            }
+          >
+            <div className="w-[360px] h-full">
+              <WorkSpaceMenu />
+            </div>
+          </WorkspacePopup>
+          <div className="w-full border-[1px] border-[#353B43] h-0 "></div>
+
           <div className="max-h-[33%] w-full ">
-            <DropDown heading={'Channels'} list={group} type={'group'} />
+            <DropDown heading={'Channels'} list={channel} type={'channel'} />
           </div>
           <div className="max-h-[33%] w-full ">
             <DropDown heading={'Groups'} list={group} type={'group'} />

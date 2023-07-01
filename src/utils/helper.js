@@ -1,5 +1,10 @@
+//Dear maintainer:
+//once you are done trying to "optimize" this func,
+//and have realized what a terrble mistake is was,
+//please increment the following counter as a warning
+//to next guy
+//total_hours_wasted_here = 1.5
 function calculateLevenshteinDistance(a, b) {
-  //chat GPT
   const distanceMatrix = Array(b.length + 1)
     .fill(null)
     .map(() => Array(a.length + 1).fill(null));
@@ -58,4 +63,28 @@ function simpleSearch(users, query) {
     console.log(error);
   }
 }
-export { search, simpleSearch };
+function fileSeacrh(list, query) {
+  try {
+    let results = list.map(object => {
+      const similarity = calculateLevenshteinDistance(query, object.content.toLowerCase());
+      return { object, similarity };
+    });
+
+    // Sort the results based on similarity
+    results.sort((a, b) => a.similarity - b.similarity);
+    results = results.map(x => x.object);
+
+    return results;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+function isValidEmail(email) {
+  // Regular expression for validating email addresses
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  // Check if the email matches the regular expression
+  return emailRegex.test(email);
+}
+export { search, simpleSearch, isValidEmail, fileSeacrh };

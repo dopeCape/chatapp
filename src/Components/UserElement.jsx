@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AvatarGroup } from '@mui/material';
-import { Avatar } from '@mui/material';
+import GroupSym from '../Frame 98.svg';
 import {
   useChatStore,
   useGroupChatStore,
@@ -24,6 +23,26 @@ export default function Useruser({
 
   const setChat = useSelectedChatStore(state => state.updateChatState);
   const [fchat, fsetChat] = useState(null);
+
+  const groupName = arr => {
+    let name = 'Me,';
+    let count = 0;
+    arr.forEach((element, index) => {
+      if (count < 2) {
+        if (element.user.user.id !== me.id) {
+          name = name + element.user.user.name;
+          count = count + 1;
+        }
+        if (arr.length > 2 && count === 1) {
+          name = name + ',';
+        }
+      }
+    });
+    if (arr.length > 2) {
+      name = name + '+' + (arr.length - 2);
+    }
+    return name;
+  };
 
   useEffect(() => {
     if (!user.groupChat) {
@@ -54,7 +73,7 @@ export default function Useruser({
   };
   return fchat ? (
     <div
-      className="flex    relative pt-3 pb-2 "
+      className="flex  relative pt-3 pb-2 "
       style={{
         background: `${selectedChat && (selectedChat.id === fchat.id || (fchat.friend && selectedChat.id === fchat.friend.id))
             ? '#4D96DA'
@@ -67,7 +86,11 @@ export default function Useruser({
     >
       <div className="ml-9">
         {fchat.groupChat ? (
-          <i class="fa-solid fa-hashtag text-white"></i>
+          fchat.groupChat.type === 'CHANNEL' ? (
+            <i class="fa-solid fa-hashtag text-white"></i>
+          ) : (
+            <img alt="Gr" src={GroupSym} className="w-[20px] h-[20px]" />
+          )
         ) : (
           <img alt={''} src={fchat.friend.user.profilePic} className="w-[20px] h-[20px] object-fit rounded-[2px]" />
         )}
@@ -76,7 +99,11 @@ export default function Useruser({
       <div className=" cursor-pointer  ml-2 text-[#fbfbfb] relative text-[16px]">
         {fchat.groupChat ? (
           <div className="relative bottom-1" style={{ fontWeight: `${fchat.unRead > 0 ? '700' : '400'}` }}>
-            {fchat.groupChat.name}
+            {fchat.groupChat.type === 'CHANNEL' ? (
+              fchat.groupChat.name
+            ) : (
+              <div>{groupName(fchat.groupChat.groupChatRef)}</div>
+            )}
           </div>
         ) : (
           <div className="relative bottom-1" style={{ fontWeight: `${fchat.unRead > 0 ? '700' : '400'}` }}>
@@ -90,7 +117,9 @@ export default function Useruser({
             {fchat.unRead}
           </div>
         ) : (
-          '9+'
+          <div className="w-[30px] h-[20px] bg-[#DA4D4D] text-white rounded-[14px]  flex flex-wrap justify-center content-center   absolute right-[50%]">
+            '9+'
+          </div>
         )
       ) : null}
     </div>

@@ -41,6 +41,20 @@ const useUserStore = create(
       set(state => ({
         user: x
       }));
+    },
+    updateWorkspace: (id, workspace) => {
+      let user = get().user;
+      user.chatWorkSpaces.workspaces.forEach(wr => {
+        if (wr.id === id) {
+          wr.name = workspace.name;
+          wr.profilePic = workspace.profilePic;
+          wr.topic = workspace.topic;
+          wr.description = workspace.description;
+        }
+      });
+      set(() => ({
+        workspace: user
+      }));
     }
   })),
   { store: 'userStore' }
@@ -75,9 +89,21 @@ const useSelectedStore = create(
   )
 );
 const useWorkSpaceStore = create(
-  devtools(set => ({
+  devtools((set, get) => ({
     workspace: null,
-    setWorkSelectdSapce: workspace => set({ workspace: workspace })
+    setWorkSelectdSapce: workspace => set({ workspace: workspace }),
+    updateSelectedWorkspace: workspace => {
+      let wr = get().workspace;
+      wr.name = workspace.name;
+      wr.profilePic = workspace.profilePic;
+      wr.topic = workspace.topic;
+      wr.description = workspace.description;
+      console.log(wr);
+      let xwr = { ...wr };
+      set(() => ({
+        workspace: xwr
+      }));
+    }
   }))
 );
 const useChatStore = create(

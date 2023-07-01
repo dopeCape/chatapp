@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Loadingbar from '../Ellipsis-1.3s-200px(1).svg';
 import './Styles/WorkSpacePopup.css';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
@@ -48,10 +47,13 @@ export default function SideBar({ setter, type }) {
 
   const setSelected = useSelectedStore(state => state.updateSelectedState);
   const groupChat = useGroupChatStore(state => state.chats);
+  const updateSelectedWorkSpace = useWorkSpaceStore(state => state.updateSelectedWorkspace);
+  const updateWorkspace = useUserStore(state => state.updateWorkspace);
   const removeMemberFromGrup = useGroupChatStore(state => state.removeuser);
   const selectedChatStore = useSelectedChatStore(state => state.user);
   const updateSelectedChatStore = useSelectedChatStore(state => state.updateChatState);
   const addUndread = useChatStore(state => state.incrementUnRead);
+  const selectedWorkspace = useWorkSpaceStore(state => state.workspace);
 
   const removeGroup = useGroupChatStore(state => state.removegroup);
   const updateGroupChat = useGroupChatStore(state => state.updateChat);
@@ -73,6 +75,7 @@ export default function SideBar({ setter, type }) {
   const inclrementGroupUnRead = useGroupChatStore(state => state.incrementUnRead);
 
   const deleteMsg = useChatStore(state => state.deleteMsg);
+  const selecteChat = useSelectedChatStore(state => state.user);
   const deleteGroupMsg = useGroupChatStore(state => state.deleteMsg);
 
   const editGroupMsg = useGroupChatStore(state => state.editMsg);
@@ -166,10 +169,12 @@ export default function SideBar({ setter, type }) {
     });
     my_channel.subscribe('new-chat', msg => {
       let new_chat = msg.data.data;
+      console.log(msg.data, selectedChatStore);
       addChat(new_chat);
-      if (new_chat.friend.user.id === selectedChatStore.user.id) {
-        console.log(new_chat);
-        updateSelectedChatStore(new_chat.friend);
+      if (selectedChatStore.user) {
+        if (new_chat.friend.user.id === selectedChatStore?.user.id) {
+          updateSelectedChatStore(new_chat.friend);
+        }
       }
       addUndread(msg.data.friendId);
     });
@@ -204,7 +209,10 @@ export default function SideBar({ setter, type }) {
 
     my_channel.subscribe('new-msg', data => {
       let msg = data.data;
-      addUndread(msg.data.friendId);
+      if (msg.data.friendId !== selecteChat.id) {
+        console.log(msg.data.friendId, selecteChat);
+        addUndread(msg.data.friendId);
+      }
       addMsg(msg.data.msg.msg);
     });
     my_channel.subscribe('new-msg-group', data => {
@@ -252,9 +260,18 @@ export default function SideBar({ setter, type }) {
       updateGroupChat(data.data.msg, data.data.groupId);
       inclrementGroupUnRead(data.data.groupId);
     });
+    my_channel.subscribe('workspace-update', data => {
+      let id = data.data.workSpaceId;
+      let workspace_ = data.data.workspace;
+      if (id === selectedWorkspace.id) {
+        updateSelectedWorkSpace(workspace_);
+      }
+      updateWorkspace(id, workspace_);
+    });
 
     return () => {
       my_channel.unsubscribe('send-request');
+      my_channel.unsubscribe('workspace-update');
 
       my_channel.unsubscribe('new-memeber-workspace');
 

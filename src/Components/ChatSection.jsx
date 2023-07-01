@@ -1,5 +1,9 @@
 /* eslint-disable react-hooks/rules-of-hooks */
+
 /* eslint-disable no-unused-vars */
+import styled from '@emotion/styled';
+import Popup from 'reactjs-popup';
+
 import EmojiPicker from 'emoji-picker-react';
 import './Styles/loadingBar.css';
 import Search from '../search.svg';
@@ -10,9 +14,6 @@ import { getDownloadURL, getStorage, ref, uploadBytes, uploadBytesResumable } fr
 // Create a single supabase client for interacting with your database
 
 import React, { useEffect, useRef, useState } from 'react';
-import { AvatarGroup } from '@mui/material';
-import { Avatar } from '@mui/material';
-
 import { useChannel } from '@ably-labs/react-hooks';
 import GroupLogo from '../Frame 98.svg';
 
@@ -33,10 +34,15 @@ import Smile from '../smile.svg';
 import Phote from '../heroicons_photo.svg';
 
 import { instance } from '../axios';
+import { Group } from 'lucide-react';
+import GroupManagePopup from './GroupManagePopup';
+import SeacrchMsgesPopup from './SearchMsgesPopup';
 
 export default function ChatSection() {
   const [sticker, setSticker] = useState(false);
   const [chat, setChat] = useState([]);
+  const [seachOpen, setSeachOpen] = useState(false);
+  const [serach, setSeach] = useState('');
 
   const [uploding, setUploding] = useState(false);
   const [msgIndex, setMsgIndex] = useState(null);
@@ -50,6 +56,7 @@ export default function ChatSection() {
   const [file, setFile] = useState();
   const fileRef = useRef();
   const [emoji, setEmoji] = useState(false);
+  const chatContainerRef = useRef(null);
 
   let me = useUserStore(state => state.user);
   let user = useSelectedChatStore(state => state.user);
@@ -63,6 +70,25 @@ export default function ChatSection() {
   const screollRef = useRef();
   const chatRef = useRef();
   const [placeHolder, setPlaceHolder] = useState();
+  const groupName = arr => {
+    let name = 'Me,';
+    let count = 0;
+    arr.forEach((element, index) => {
+      if (count < 2) {
+        if (element.user.user.id !== me.id) {
+          name = name + element.user.user.name;
+          count = count + 1;
+        }
+        if (arr.length > 2 && count === 1) {
+          name = name + ',';
+        }
+      }
+    });
+    if (arr.length > 2) {
+      name = name + '+' + (arr.length - 2);
+    }
+    return name;
+  };
 
   const changeChat = () => {
     if (user && user.groupChat !== undefined) {
@@ -94,6 +120,7 @@ export default function ChatSection() {
         handleRead(w, 'friend');
       }
     }
+    setMsgIndex(null);
   };
   const handleRead = async (chat, type) => {
     try {
@@ -141,8 +168,10 @@ export default function ChatSection() {
     if (user) {
       setPlaceHolder();
     }
-
     changeChat();
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [user, chat_, group_]);
   let userChannelId = 'x';
   let meId = 'y';
@@ -174,7 +203,22 @@ export default function ChatSection() {
     };
   }, []);
 
+  const adjustInputHeight = () => {
+    chatRef.current.style.height = 'auto';
+    chatRef.current.style.height = `${chatRef.current.scrollHeight}px`;
+  };
+  const SearchPopuu = styled(Popup)`
+    &-content {
+      border: none;
+      height: 350px;
+      padding: 0;
+      width: 410px;
+      border-radius: 10px;
+    }
+  `;
+
   const handleInputChange = e => {
+    adjustInputHeight();
     // try {
     //   if (chatRef.current.value !== '') {
     //     chatUserChannel.publish('typing', { typing: true, chatId: chatId });
@@ -192,11 +236,8 @@ export default function ChatSection() {
         if (e.target.files[0].size < 10000000) {
           setFile(e.target.files[0]);
           const file = e.target.files[0];
-
           const fileExt = file.name;
-
           const type = file.type;
-
           const storage = getStorage();
           const storageRef = ref(storage, 'files/' + fileExt);
 
@@ -329,7 +370,7 @@ export default function ChatSection() {
   let accessToken = localStorage.getItem('token');
 
   const handleSendMsg = async e => {
-    if (placeHolder !== '' && e.key === 'Enter' && !e.shiftKey) {
+    if (chatRef.current.value.trim() !== '' && e.key === 'Enter' && !e.shiftKey) {
       if (chat.length === 0) {
         await instance.post(
           '/user/newchat',
@@ -402,43 +443,108 @@ export default function ChatSection() {
             }
           );
         }
-        chatRef.current.value = '';
-        setPlaceHolder(`Message ${user.groupChat ? '#' + user.groupChat.name : user.user.name}`);
       }
+
+      chatRef.current.value = '';
+      setPlaceHolder(`Message ${user.groupChat ? '#' + user.groupChat.name : user.user.name}`);
+      adjustInputHeight();
     } else if (e.shiftKey && e.key === 'Enter') {
-      // chatRef.current.value = chatRef.current.value =;
+      // chatRef.current.value = chatRef.current.value.slice(0) + '\n';
     }
   };
+  const ManageGroupPopup = styled(Popup)`
+    &-content {
+      border: none;
+      height: 650px;
+      padding: 0;
+      width: 600px;
+      border-radius: 10px;
+    }
+  `;
 
   return user === undefined || user === null ? (
     <div className="w-full h-full bg-white dark:bg-[#2c2c2c] dark:text-white text-[26px] font-bold flex flex-wrap justify-center content-center">
       Select a friend to start a conversation
     </div>
   ) : (
-    <div className="w-full h-full flex flex-col bg-[#37393F]">
+    <div className="w-full h-full flex flex-col bg-[#37393F] ">
       {user.groupChat !== undefined ? (
         <div className="w-[100%] h-[9%]   flex    bg-[#2F3137] border-[2px] border-none border-b-[#353B43] relative">
-          <img src={GroupLogo} alt={'Loading...'} className="rounded-[2px] h-[30px] w-[30px] mt-5 ml-5 mr-1    " />
-          <div className="text-[20px] font-[700]  mt-5  text-white">{user.groupChat.name}</div>
-          <i class="fa-solid fa-chevron-down mt-7 ml-1 text-[14px] font-bold cursor-pointer text-[#F8F8F8]"></i>
-          <div className="text-[#B4B4B4] mt-5 ml-8">{'Contains all exchanging informations for the company.'}</div>
+          <ManageGroupPopup
+            modal
+            position="center"
+            closeOnDocumentClick={false}
+            trigger={
+              <div className="flex flex-wrap justify-center content-center   pr-2  hover:bg-[#4e5055] h-[50px] mt-3 rounded-[5px] pt-0  cursor-pointer">
+                {user.groupChat.type === 'CHANNEL' ? (
+                  <>
+                    <i className="fa-solid fa-hashtag text-white  mt-2 ml-2 mr-1"></i>
+
+                    <div className="text-[20px] font-[700]   text-white">{user.groupChat.name}</div>
+                  </>
+                ) : (
+                  <>
+                    <img
+                      src={GroupLogo}
+                      alt={'Loading...'}
+                      className="rounded-[2px] h-[30px] w-[30px]  ml-2 mr-1    "
+                    />
+
+                    <div className="text-[20px] font-[700]   text-white">{groupName(user.groupChat.groupChatRef)}</div>
+                  </>
+                )}
+                <i class="fa-solid fa-chevron-down  ml-1 text-[14px] font-bold cursor-pointer text-[#F8F8F8] mt-2"></i>
+              </div>
+            }
+          >
+            {close => <GroupManagePopup close={close} groupChat={user} />}
+          </ManageGroupPopup>
           <div className="h-[60%] w-[15%] bg-[#696D78] rounded-[10px] absolute right-[3%] top-[20%] flex p-3">
             <img alt="" src={Search} className="mr-3" />
-            <input placeholder="Search..." className="bg-transparent outline-none text-white  w-[70%]" />
+            <input
+              placeholder="Search..."
+              className="bg-transparent outline-none text-white  w-[70%]"
+              value={serach}
+              onChange={e => {
+                setSeach(e.target.value);
+              }}
+              onClick={() => {
+                setSeachOpen(true);
+              }}
+            />
           </div>
         </div>
       ) : (
         <div className="w-[100%] h-[9%]   flex    bg-[#2F3137] border-[2px] border-none border-b-[#353B43] relative">
-          <img src={user.user.profilePic} alt={'Loading...'} className="rounded-[2px] h-[45px] w-[45px] mt-3 m-4 " />
-          <div className="text-[20px] font-[700] ml-2 mt-5  text-white">{user.user.name}</div>
+          <img src={user.user.profilePic} alt={'Loading...'} className="rounded-[2px] h-[45px] w-[45px]  m-4 " />
+          <div className="text-[20px] font-[700] ml-2 mt-5   text-white">{user.user.name}</div>
           <div className="h-[60%] w-[15%] bg-[#696D78] rounded-[10px] absolute right-[3%] top-[20%] flex p-3">
-            <img alt="" src={Search} className="mr-3" />
-            <input placeholder="Search..." className="bg-transparent outline-none text-white  w-[70%]" />
+            <img
+              alt=""
+              src={Search}
+              className="mr-3"
+              value={serach}
+              onChange={e => {
+                setSeach(e.target.value);
+              }}
+            />
+            <input
+              placeholder="Search..."
+              className="bg-transparent outline-none text-white  w-[70%]"
+              onClick={() => {
+                setSeachOpen(true);
+              }}
+            />
           </div>
         </div>
       )}
+      {seachOpen ? (
+        <div className="absolute right-[2%] top-[8%] w-[410px] h-[450px] z-50">
+          <SeacrchMsgesPopup msges={chat} query={serach} close={setSeachOpen} />
+        </div>
+      ) : null}
 
-      <div className="w-full h-[80%] max-h-[80%] flex flex-col overflow-y-scroll  ">
+      <div className="w-full h-[80%] max-h-[80%] flex flex-col    overflow-y-scroll   " ref={chatContainerRef}>
         {' '}
         {chat.map((msg, index) => {
           let pDate = new Date(msg.createdAt);
@@ -451,7 +557,7 @@ export default function ChatSection() {
             date = 'today';
           }
           return pDate < today ? (
-            <div>
+            <div style={{ marginTop: `${index === 0 ? 'auto' : null}` }}>
               {index === 0 || new Date(chat.at(index - 1).createdAt).setHours(0, 0, 0, 0) < pDate ? (
                 <div className="flex">
                   <div className="w-[48%] left-[2%]  border-[1px] h-0 relative top-3 border-[#515357]"></div>
@@ -462,10 +568,13 @@ export default function ChatSection() {
                 </div>
               ) : null}
               <div
-                className=" ml-6 "
+                className=" "
                 key={index}
-                onClick={() => {
+                onMouseEnter={() => {
                   setMsgIndex(index);
+                }}
+                onMouseLeave={() => {
+                  setMsgIndex(null);
                 }}
               >
                 <MsgElement
@@ -485,7 +594,7 @@ export default function ChatSection() {
               </div>
             </div>
           ) : (
-            <div>
+            <div style={{ marginTop: `${index === 0 ? 'auto' : null}` }}>
               {index === 0 || new Date(chat.at(index - 1).createdAt).setHours(0, 0, 0, 0) < pDate ? (
                 <div className="flex">
                   <div className="w-[48%] left-[2%]  border-[1px] h-0 relative top-3 border-[#515357]"></div>
@@ -496,10 +605,13 @@ export default function ChatSection() {
                 </div>
               ) : null}
               <div
-                className=" ml-6 "
+                className="   "
                 key={index}
-                onClick={() => {
+                onMouseEnter={() => {
                   setMsgIndex(index);
+                }}
+                onMouseLeave={() => {
+                  setMsgIndex(null);
                 }}
               >
                 <MsgElement
@@ -556,17 +668,15 @@ export default function ChatSection() {
           </div>
         </div>
       ) : null}
-      <div className="p-4  pl-5 bg-[#40444A] rounded-[10px] w-[95%] ml-6 max-h-[20%]   flex justify-end     top-3  ">
-        <input
+      <div className="p-4  pl-5 bg-[#40444A] rounded-[10px] w-[95%] ml-6 mt-2  max-h-[30%]  flex justify-end    h-auto   ">
+        <textarea
           ref={chatRef}
-          type="text"
-          contentEditable
-          className="bg-[#40444A]  outline-none border-none w-[90%] max-w-[90%]  text-white  resize-none  min-h-[30%]  "
+          className="bg-[#40444A]  outline-none border-none w-[90%] max-w-[90%]  text-white h-[20px]   max-h-[200px]   flex-grow  overflow-y-scroll "
           onChange={handleInputChange}
           placeholder={`Message ${user.groupChat ? '#' + user.groupChat.name : user.user.name}`}
           onKeyDown={handleSendMsg}
           tabIndex={0}
-        ></input>
+        ></textarea>
 
         <img
           alt="Link"
@@ -629,8 +739,6 @@ export default function ChatSection() {
             setSticker(!sticker);
           }}
         ></img>
-        {/* <i class="fa-solid fa-paper-plane dark:text-white text-[22px]  cursor-pointer" onClick={handleSendMsg}></i>  send button*/}
-
         {sticker ? (
           <div className="absolute w-[300px] h-[250px]  top-[57%]">
             <GiphyComponen user={user} me={me} chatId={chatId} type={chat.length === 0 ? 'new' : null} />

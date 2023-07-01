@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Close from '../ph_x-bold.svg';
 import { useChatStore, useSelectedChatStore, useUserStore, useWorkSpaceStore } from '../Stores/MainStore';
 import { simpleSearch } from '../utils/helper';
@@ -10,6 +10,7 @@ export default function NewChat({ close }) {
   const selectedWorkspace = useWorkSpaceStore(state => state.workspace);
   const setSelectedChat = useSelectedChatStore(state => state.updateChatState);
   const chatStore = useChatStore(state => state.chats);
+  const [error, setError] = useState(null);
 
   const searchUsers = e => {
     try {
@@ -47,7 +48,11 @@ export default function NewChat({ close }) {
   };
   const createChat = () => {
     try {
-      setSelectedChat(seUser);
+      if (seUser) {
+        setSelectedChat(seUser);
+      } else {
+        setError('*Select a user');
+      }
     } catch (error) {
       console.log(error);
     }
@@ -90,7 +95,7 @@ export default function NewChat({ close }) {
           placeholder="Search for person name"
         />
       )}
-      {users.length != 0 ? (
+      {users.length !== 0 ? (
         <div className="w-[90%] max-h-[140px]  ml-6 mt-1 sticky   bg-[#585B66] rounded-[5px] overflow-scroll z-10">
           {users.map(x => {
             return (
@@ -123,6 +128,7 @@ export default function NewChat({ close }) {
       >
         Chat
       </button>
+      <div className="text-red-400 absolute bottom-[10%] ml-8">{error}</div>
     </div>
   );
 }

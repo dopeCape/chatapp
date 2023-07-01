@@ -5,6 +5,7 @@ import Useruser from './UserElement';
 import NewChat from './NewChat';
 import styled from '@emotion/styled';
 import Popup from 'reactjs-popup';
+import NewGroup from './NewGroup';
 export default function DropDown({ heading, list, type }) {
   const selectedChat = useSelectedChatStore(state => state.user);
   const setChat = useSelectedChatStore(state => state.updateChatState);
@@ -23,6 +24,16 @@ export default function DropDown({ heading, list, type }) {
   useEffect(() => {
     fsetChat(list);
   }, [list]);
+  const CreateChannelPopup = styled(Popup)`
+    &-content {
+      border: none;
+      height: 350px;
+      padding: 0;
+      width: 600px;
+      border-radius: 10px;
+    }
+  `;
+
   const AddChatPopup = styled(Popup)`
     &-content {
       border: none;
@@ -46,7 +57,6 @@ export default function DropDown({ heading, list, type }) {
         ) : (
           <i class="fa-solid fa-sort-down text-white mr-2 ml-5  "></i>
         )}
-
         <div className="text-[15px]  text-[#fbfbfb] mb-1">{heading}</div>
       </div>
       {open ? (
@@ -62,7 +72,7 @@ export default function DropDown({ heading, list, type }) {
           position="center"
           closeOnDocumentClick={false}
           trigger={
-            <div className="flex ml-5 mt-3 ">
+            <div className="flex ml-4  ">
               <button className="rounded-[5px] bg-[#85858526] h-[20px] w-[20px] ml-4 pt-1  flex flex-wrap content-center justify-center  ">
                 <i class="fa-solid fa-plus text-white text-[12px]"></i>
               </button>
@@ -72,6 +82,38 @@ export default function DropDown({ heading, list, type }) {
         >
           {close => <NewChat close={close} />}
         </AddChatPopup>
+      ) : type === 'channel' ? (
+        <CreateChannelPopup
+          modal
+          position="center"
+          closeOnDocumentClick={false}
+          trigger={
+            <div className="flex ml-4  ">
+              <button className="rounded-[5px] bg-[#85858526] h-[20px] w-[20px] ml-4 pt-1  flex flex-wrap content-center justify-center  ">
+                <i class="fa-solid fa-plus text-white text-[12px]"></i>
+              </button>
+              <div className="text-white ml-2 cursor-pointer ">Add Channel</div>
+            </div>
+          }
+        >
+          {close => <NewGroup close={close} type={'Channel'} />}
+        </CreateChannelPopup>
+      ) : type === 'group' ? (
+        <CreateChannelPopup
+          modal
+          position="center"
+          closeOnDocumentClick={false}
+          trigger={
+            <div className="flex ml-4  ">
+              <button className="rounded-[5px] bg-[#85858526] h-[20px] w-[20px] ml-4 pt-1  flex flex-wrap content-center justify-center  ">
+                <i class="fa-solid fa-plus text-white text-[12px]"></i>
+              </button>
+              <div className="text-white ml-2 cursor-pointer ">Add Group</div>
+            </div>
+          }
+        >
+          {close => <NewGroup close={close} type={'Group'} />}
+        </CreateChannelPopup>
       ) : null}
     </div>
   );
