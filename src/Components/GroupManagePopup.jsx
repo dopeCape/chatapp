@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import Spinner from '../Spin-1s-200px.svg';
 import Mute from '../volume-x.svg';
+import Delete from '../delete.svg';
 
 import { instance } from '../axios';
 import Exit from '../streamline_interface-logout-arrow-exit-frame-leave-logout-rectangle-right.svg';
@@ -15,9 +17,10 @@ import { fileSeacrh } from '../utils/helper';
 import DeleteUserPopup from './DeleteUserPopup';
 import AddUsersToGroupPopup from './AddUsersToGroupPopup';
 
-export default function GroupManagePopup({ close, groupChat }) {
+export default function GroupManagePopup({ close, groupChat, type, useR, chat }) {
   const [selected, setSelected] = useState('A');
   const [allFiles, setallFiles] = useState([]);
+  const [deleting, setDeleting] = useState(false);
   const [files, setFiles] = useState([]);
   const [search, setSearch] = useState('');
   let me = useUserStore(state => state.user);
@@ -27,20 +30,31 @@ export default function GroupManagePopup({ close, groupChat }) {
 
   useEffect(() => {
     let files = [];
-    groupChat.groupChat.msges.forEach(msg => {
-      if (msg.type === 'VIDEO' || msg.type === 'IMG' || msg.type === 'FILE' || msg.type === 'STICKER') {
-        files.push(msg);
-      }
-    });
-    setFiles(files);
-    setallFiles(files);
-  }, [user, group_, chat_]);
+    if (type === 'G') {
+      groupChat.groupChat.msges.forEach(msg => {
+        if (msg.type === 'VIDEO' || msg.type === 'IMG' || msg.type === 'FILE' || msg.type === 'STICKER') {
+          files.push(msg);
+        }
+      });
+      setFiles(files);
+      setallFiles(files);
+    } else {
+      chat.forEach(msg => {
+        if (msg.type === 'VIDEO' || msg.type === 'IMG' || msg.type === 'FILE' || msg.type === 'STICKER') {
+          files.push(msg);
+        }
+        setFiles(files);
+        setallFiles(files);
+      });
+    }
+  }, [user, group_, chat_, type]);
   const accessToken = localStorage.getItem('token');
   const handeleLeaveGroup = async () => {
     try {
       const msg = `${me.name} left`;
       const groupChatRefId = groupChat.id;
       const uid = me.id;
+      setDeleting(true);
       await instance.post(
         '/gchat/remove',
         {
@@ -56,6 +70,8 @@ export default function GroupManagePopup({ close, groupChat }) {
           }
         }
       );
+
+      setDeleting(false);
     } catch (error) {
       console.log(error);
     }
@@ -64,8 +80,33 @@ export default function GroupManagePopup({ close, groupChat }) {
   const handleSeach = query => {
     try {
       let res = fileSeacrh(files, query);
-      console.log(res);
+      res = res.map(x => {
+        return x.item;
+      });
       setFiles(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const handleDeleteGroup = async () => {
+    try {
+      let groupChatRefs = groupChat.groupChat.groupChatRef.map(x => x.id);
+      let users = groupChat.groupChat.groupChatRef.map(x => x.user.user.id);
+      setDeleting(true);
+      await instance.post(
+        '/gchat/delete',
+        {
+          groupChatId: groupChat.groupChat.id,
+          groupChatRefs,
+          users
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        }
+      );
+      setDeleting(false);
     } catch (error) {
       console.log(error);
     }
@@ -99,57 +140,106 @@ export default function GroupManagePopup({ close, groupChat }) {
           close();
         }}
       />
-      <div className="flex  text-[#B4B4B4] mt-12 content-center justify-center  text-[20px] font-[700]  relative">
-        <div
-          className="cursor-pointer"
-          style={{ color: `${selected === 'A' ? 'white' : '#B4B4B4'}` }}
-          onClick={() => {
-            setSelected('A');
-          }}
-        >
-          About
-        </div>
-        {selected === 'A' ? (
-          <div className="w-[13px] h-0 border-[#4D96DA] border-[3px] rounded-[10px] absolute bottom-[-30%] left-[37%] "></div>
-        ) : null}
-        <div
-          className="ml-10 cursor-pointer"
-          style={{ color: `${selected === 'M' ? 'white' : '#B4B4B4'}` }}
-          onClick={() => {
-            setSelected('M');
-          }}
-        >
-          Members<span className="ml-2 font-[400]">{groupChat.groupChat.groupChatRef.length}</span>
-        </div>
+      {type === 'G' ? (
+        <div className="flex  text-[#B4B4B4] mt-12 content-center justify-center  text-[20px] font-[700]  relative">
+          <div
+            className="cursor-pointer"
+            style={{ color: `${selected === 'A' ? 'white' : '#B4B4B4'}` }}
+            onClick={() => {
+              setSelected('A');
+            }}
+          >
+            About
+          </div>
+          {selected === 'A' ? (
+            <div className="w-[13px] h-0 border-[#4D96DA] border-[3px] rounded-[10px] absolute bottom-[-30%] left-[37%] "></div>
+          ) : null}
+          <div
+            className="ml-10 cursor-pointer"
+            style={{ color: `${selected === 'M' ? 'white' : '#B4B4B4'}` }}
+            onClick={() => {
+              setSelected('M');
+            }}
+          >
+            Members<span className="ml-2 font-[400]">{groupChat.groupChat.groupChatRef.length}</span>
+          </div>
 
-        {selected === 'M' ? (
-          <div className="w-[13px]  border-[#4D96DA] border-[3px] rounded-[10px] absolute bottom-[-30%] right-[41%] "></div>
-        ) : null}
-      </div>
+          {selected === 'M' ? (
+            <div className="w-[13px]  border-[#4D96DA] border-[3px] rounded-[10px] absolute bottom-[-30%] right-[41%] "></div>
+          ) : null}
+        </div>
+      ) : null}
       {selected === 'A' ? (
         <div className="flex flex-col">
           {' '}
-          <div className="w-[90%] h-[80px] ml-8 bg-[#40434B] rounded-[10px] flex flex-col mt-12 ">
-            <div className="ml-5 mt-3 text-white font-[700]">Created and managed by</div>
-            <div className="ml-6 text-[#B4B4B4] mt-2 text-[14px]">{groupChat.groupChat.admin.email}</div>
-          </div>
+          {type === 'G' ? (
+            <div className="w-[90%] h-[80px] ml-8 bg-[#40434B] rounded-[10px] flex flex-col mt-12 ">
+              <div className="ml-5 mt-3 text-white font-[700]">
+                {groupChat.groupChat.type === 'CHANNEL' ? 'Created and managed by' : 'Created by'}
+              </div>
+              <div className="ml-6 text-[#B4B4B4] mt-2 text-[14px]">{groupChat.groupChat.admin.email}</div>
+            </div>
+          ) : (
+            <div className="w-[90%] h-[100px] ml-8 bg-[#40434B] rounded-[10px] flex mt-16 flex-wrap content-center ">
+              <img src={user.user.profilePic} alt="Loading.." className="w-[80px] h-[80px] rounded-[10px] ml-5 " />
+              <div className="flex flex-col">
+                <div className="ml-3 text-[18px] font-[700] text-white mt-1">{user.user.name}</div>
+                <div className="text-[#B4B4B4] ml-3 text-[14px] mt-1">Status</div>
+              </div>
+            </div>
+          )}
           <div className="flex w-[90%] ml-8 mt-5  flex-wrap justify-between">
             <button className="bg-[#40434B] py-4 w-[48%] flex flex-wrap justify-center  rounded-[10px] outline-none">
               <img className="w-[20px] h-[20px] " src={Mute} alt="X" />
               <div className="text-white tex-[18px] font-[700] ml-2">Mute notification</div>
             </button>
-            <button
-              className="bg-[#40434B] py-4 w-[48%] flex flex-wrap justify-center  rounded-[10px] outline-none"
-              disabled={groupChat.groupChat.admin.id === me.id}
-              onClick={() => {
-                if (groupChat.groupChat.admin.id !== me.id) {
-                  handeleLeaveGroup();
-                }
-              }}
-            >
-              <img className="w-[20px] h-[20px] " src={Exit} alt="X" />
-              <div className="text-[#DA4D4D] tex-[18px] font-[700] ml-2">Leave group</div>
-            </button>
+            {type === 'G' ? (
+              <button
+                className="bg-[#40434B] py-4 w-[48%] flex flex-wrap justify-center  rounded-[10px] outline-none"
+                onClick={() => {
+                  if (groupChat.groupChat.admin.id !== me.id) {
+                    handeleLeaveGroup();
+                  } else if (groupChat.groupChat.type === 'CHANNEL' && groupChat.groupChat.admin.id === me.id) {
+                    handleDeleteGroup();
+                  }
+                }}
+              >
+                {groupChat.groupChat.admin.id === me.id && groupChat.groupChat.type !== 'GROUP' ? (
+                  deleting ? null : (
+                    <img src={Delete} alt="D" className="w-[20px] h-[20px]" />
+                  )
+                ) : (
+                  <img className="w-[20px] h-[20px] " src={Exit} alt="X" />
+                )}
+                <div className="text-[#DA4D4D] tex-[18px] font-[700] ml-2">
+                  {groupChat.groupChat.admin.id === me.id && groupChat.groupChat.type !== 'GROUP' ? (
+                    deleting ? (
+                      <img className="w-[25px] h-[20px]" src={Spinner} alt="Deleting..." />
+                    ) : (
+                      'Delete Group'
+                    )
+                  ) : groupChat.groupChat.type === 'CHANNEL' ? (
+                    deleting ? (
+                      <img className="w-[25px] h-[20px]" src={Spinner} alt="Deleting..." />
+                    ) : (
+                      'Leave Channel'
+                    )
+                  ) : deleting ? (
+                    <img className="w-[25px] h-[20px]" src={Spinner} alt="Deleting..." />
+                  ) : (
+                    ' Leave Group'
+                  )}
+                </div>
+              </button>
+            ) : (
+              <button
+                className="bg-[#40434B] py-4 w-[48%] flex flex-wrap justify-center  rounded-[10px] outline-none"
+                disabled={true}
+              >
+                <img className="w-[20px] h-[20px] " src={Exit} alt="X" />
+                <div className="text-[#DA4D4D] tex-[18px] font-[700] ml-2">Delete Chat</div>
+              </button>
+            )}
           </div>
           <div className="bg-[#40434B] rounded-[10px] ml-8 mt-5 w-[90%] h-[320px] relative  ">
             <div className="text-white ml-5 mt-5">Files</div>
@@ -178,7 +268,7 @@ export default function GroupManagePopup({ close, groupChat }) {
         </div>
       ) : (
         <div className="h-[510px] max-h-[550px] w-[90%] ml-8 mt-8 bg-[#40434B] flex flex-col rounded-[10px]">
-          {groupChat.groupChat.admin.id === me.id ? (
+          {groupChat.groupChat.admin.id === me.id || groupChat.groupChat.type === 'GROUP' ? (
             <AddMemberPopup
               modal
               position="center"
@@ -205,7 +295,7 @@ export default function GroupManagePopup({ close, groupChat }) {
           </div>
 
           {groupChat.groupChat.groupChatRef.map(user => {
-            return groupChat.groupChat.admin.id === me.id ? (
+            return groupChat.groupChat.admin.id === me.id && groupChat.groupChat.type === 'CHANNEL' ? (
               user.user.user.id === me.id ? null : (
                 <RemoveMemberPopup
                   modal

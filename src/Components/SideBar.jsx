@@ -51,21 +51,19 @@ export default function SideBar({ setter, type }) {
   const updateWorkspace = useUserStore(state => state.updateWorkspace);
   const removeMemberFromGrup = useGroupChatStore(state => state.removeuser);
   const selectedChatStore = useSelectedChatStore(state => state.user);
+  const deleteGroup = useGroupChatStore(state => state.deleteGroup);
   const updateSelectedChatStore = useSelectedChatStore(state => state.updateChatState);
   const addUndread = useChatStore(state => state.incrementUnRead);
   const selectedWorkspace = useWorkSpaceStore(state => state.workspace);
-
   const removeGroup = useGroupChatStore(state => state.removegroup);
   const updateGroupChat = useGroupChatStore(state => state.updateChat);
   const addUserToGroup = useGroupChatStore(state => state.addUser);
   const addUserToWorkSpace = useUserStore(state => state.addUser);
   const addUserToSelectedChat = useSelectedChatStore(state => state.addNewUserToSelectedStore);
-
   const updateSelected = useSelectedStore(state => state.updateSelectedState);
   const chatSetter = useChatStore(state => state.setChat);
   const groupChatSetter = useGroupChatStore(state => state.setChat);
   const workSpaceStore = useWorkSpaceStore(state => state.setWorkSelectdSapce);
-
   const changeMsgState = useMsgesStore(state => state.updateMsgesState);
   const msgSetter = useMsgesStore(state => state.changeMsgesState);
   const addGroupChat = useGroupChatStore(state => state.addChat);
@@ -92,13 +90,23 @@ export default function SideBar({ setter, type }) {
     updateGroupChat(msg.data.msg, msg.data.chiatId);
     addUserToWorkSpace(msg.data.user, msg.data.workSpaceID);
   };
+  const playSound = () => {
+    try {
+      let au = new Audio('/mixkit-dry-pop-up-notification-alert-2356.wav');
+      au.volume = 0.5;
+      au.play().catch(error => {
+        console.log(error);
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const handleCreateWorkSpace = async close => {
     try {
       const accessToken = localStorage.getItem('token');
       if (workspaceNameRef.current.value !== '') {
         setReq(true);
-
         let res = await instance.post(
           '/workspace/create',
           {
@@ -133,18 +141,15 @@ export default function SideBar({ setter, type }) {
       console.log(error);
     }
   };
-
   const handleClicked = clicked => {
     setClicked(clicked);
   };
-
   const addDarkMode = () => {
     document.querySelector('html').classList.add('dark');
     document.querySelector('html').setAttribute('data-theme', 'dark');
   };
   const removeDarkMode = () => {
     document.querySelector('html').classList.remove('dark');
-
     document.querySelector('html').setAttribute('data-theme', 'light');
   };
   const handleLogout = () => {
@@ -153,7 +158,6 @@ export default function SideBar({ setter, type }) {
     groupChatSetter([]);
     workSpaceStore(null);
     setUser(null);
-
     signOut(auth);
     window.location.reload();
   };
@@ -161,7 +165,7 @@ export default function SideBar({ setter, type }) {
     updateSelected(null);
   };
   const [my_channel] = useChannel(me.id, msg => { });
-
+  let accessToken = localStorage.getItem('token');
   useEffect(() => {
     my_channel.subscribe('send-request', msg => {
       let to = msg.data;
@@ -169,14 +173,14 @@ export default function SideBar({ setter, type }) {
     });
     my_channel.subscribe('new-chat', msg => {
       let new_chat = msg.data.data;
-      console.log(msg.data, selectedChatStore);
       addChat(new_chat);
       if (selectedChatStore.user) {
         if (new_chat.friend.user.id === selectedChatStore?.user.id) {
           updateSelectedChatStore(new_chat.friend);
+        } else {
+          playSound();
         }
       }
-      addUndread(msg.data.friendId);
     });
     my_channel.subscribe('new-memeber-group', msg => {
       msg.data.newUser.forEach(x => {
@@ -197,7 +201,7 @@ export default function SideBar({ setter, type }) {
     });
     my_channel.subscribe('new-group', msg => {
       addGroupChat(msg.data.GroupChat);
-
+      playSound();
       inclrementGroupUnRead(msg.data.GroupChat.groupChat.id);
     });
     my_channel.subscribe('accept-request', msg => {
@@ -207,24 +211,63 @@ export default function SideBar({ setter, type }) {
       updateUser(to);
     });
 
-    my_channel.subscribe('new-msg', data => {
+    my_channel.subscribe('new-msg', async data => {
       let msg = data.data;
-      if (msg.data.friendId !== selecteChat.id) {
-        console.log(msg.data.friendId, selecteChat);
-        addUndread(msg.data.friendId);
-      }
-      addMsg(msg.data.msg.msg);
-    });
-    my_channel.subscribe('new-msg-group', data => {
-      if (data.data.msg.msg.from.id !== me.id) {
-        inclrementGroupUnRead(data.data.chatId);
-      }
+      if (msg.data.msg.from.id !== me.id) {
+        if (selecteChat && selecteChat.user) {
+          if (selecteChat.user.id !== msg.data.msg.from.id && selectedWorkspace.id !== msg.data.workspaceId) {
+            addUndread(msg.data.friendId);
+            playSound();
+          } else {
+            await instance.post(
+              '/user/handleread',
+              {
+                id: msg.data.friendId
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`
+                }
+              }
+            );
+          }
+        } else {
+          addUndread(msg.data.friendId);
 
+          playSound();
+        }
+      }
+      addMsg(msg.data.msg);
+    });
+    my_channel.subscribe('new-msg-group', async data => {
+      let msg = data.data.msg.msg;
+      if (msg.from.id !== me.id) {
+        if (selecteChat && selecteChat.groupChat) {
+          if (selecteChat.groupChatId !== data.data.chatId) {
+            inclrementGroupUnRead(data.data.chatId);
+            playSound();
+          } else {
+            await instance.post(
+              '/gchat/unread',
+              {
+                id: selecteChat.id
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`
+                }
+              }
+            );
+          }
+        } else {
+          inclrementGroupUnRead(data.data.chatId);
+          playSound();
+        }
+      }
       updateGroupChat(data.data.msg.msg, data.data.chatId);
     });
     my_channel.subscribe('delete-msg-group', data => {
       let msg = data.data;
-
       deleteGroupMsg(msg.msgId, msg.chatId);
     });
     my_channel.subscribe('delete-msg', data => {
@@ -233,15 +276,12 @@ export default function SideBar({ setter, type }) {
       deleteMsg(msg.msgid, msg.chatId);
     });
     my_channel.subscribe('edit-msg-group', data => {
-      console.log(data.data);
-
       let msg = data.data;
 
       editGroupMsg(msg.msgId, msg.chatId, msg.msg);
     });
     my_channel.subscribe('edit-msg', data => {
       let msg = data.data;
-      console.log(data);
 
       editMsg(msg.msgId, msg.chatId, msg.content);
     });
@@ -260,6 +300,12 @@ export default function SideBar({ setter, type }) {
       updateGroupChat(data.data.msg, data.data.groupId);
       inclrementGroupUnRead(data.data.groupId);
     });
+
+    my_channel.subscribe('group-delete', data => {
+      console.log(data.data);
+      deleteGroup(data.data.groupChatId);
+    });
+
     my_channel.subscribe('workspace-update', data => {
       let id = data.data.workSpaceId;
       let workspace_ = data.data.workspace;
@@ -272,6 +318,8 @@ export default function SideBar({ setter, type }) {
     return () => {
       my_channel.unsubscribe('send-request');
       my_channel.unsubscribe('workspace-update');
+
+      my_channel.unsubscribe('group-delete');
 
       my_channel.unsubscribe('new-memeber-workspace');
 

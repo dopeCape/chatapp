@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { useWorkSpaceStore } from '../Stores/MainStore';
+
+import { useWorkSpaceStore, useUserStore } from '../Stores/MainStore';
 import styled from '@emotion/styled';
 import Popup from 'reactjs-popup';
 import InviteToWorkcpace from './InviteToWorkcpacePopup';
 import EditWorkSpace from './EditWorkSpace';
 import NewGroup from './NewGroup';
 export default function WorkSpaceMenu() {
+  const me = useUserStore(state => state.user);
   const workspace = useWorkSpaceStore(state => state.workspace);
   const EditWorkspcePopup = styled(Popup)`
     &-content {
@@ -66,18 +68,20 @@ export default function WorkSpaceMenu() {
         {close => <NewGroup close={close} type={'Channel'} />}
       </CreateChannelPopup>
       <div className=" py-3 pl-8   cursor-pointer hover:bg-[#4D96DA]">History</div>
-      <EditWorkspcePopup
-        modal
-        position="center center"
-        closeOnEscape={false}
-        closeOnDocumentClick={false}
-        trigger={<div className=" py-3 pl-8   cursor-pointer hover:bg-[#4D96DA]">Edit Workspace Profile</div>}
-      >
-        {close => <EditWorkSpace close={close} />}
-      </EditWorkspcePopup>
+      {me.admin ? (
+        <EditWorkspcePopup
+          modal
+          position="center center"
+          closeOnEscape={false}
+          closeOnDocumentClick={false}
+          trigger={<div className=" py-3 pl-8   cursor-pointer hover:bg-[#4D96DA]">Edit Workspace Profile</div>}
+        >
+          {close => <EditWorkSpace close={close} />}
+        </EditWorkspcePopup>
+      ) : null}
 
-      <div className="w-[80%]  h-0 border-[1px] border-[#616061] ml-8  mt-5 "></div>
-      <div className="ml-8 mt-5 text-[#DA4D4D] cursor-pointer">Sign out of {workspace.name}</div>
+      <div className="w-[80%]  h-0 border-[1px] border-[#616061] ml-8  mt-auto "></div>
+      <div className="ml-8 mb-8 mt-5 text-[#DA4D4D] cursor-pointer">Sign out of {workspace.name}</div>
     </div>
   );
 }

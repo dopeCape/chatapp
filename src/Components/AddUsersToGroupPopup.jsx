@@ -65,7 +65,7 @@ export default function AddUsersToGroupPopup({ close, groupChat }) {
           close();
         }}
       />
-      <div className="text-[20px] font-[700] mt-5 ml-8">Add people to marketing</div>
+      <div className="text-[20px] font-[700] mt-5 ml-8">Add people to {groupChat.groupChat.name}</div>
       <input
         className="ml-8 mt-5 bg-[#40434B] outline-none rounded-[5px] w-[90%] py-3 px-3 "
         value={searBar}

@@ -29,20 +29,24 @@ import {
   useUserStore,
   useWorkSpaceStore
 } from '../Stores/MainStore';
+import MentionMenu from './MentionMenu';
 import GiphyComponen from './GiphyComponent';
 import Smile from '../smile.svg';
 import Phote from '../heroicons_photo.svg';
 
 import { instance } from '../axios';
-import { Group } from 'lucide-react';
 import GroupManagePopup from './GroupManagePopup';
 import SeacrchMsgesPopup from './SearchMsgesPopup';
+import LinkHighlighter from './LinkHeilight';
 
 export default function ChatSection() {
   const [sticker, setSticker] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ left: 0, top: 0 });
   const [chat, setChat] = useState([]);
   const [seachOpen, setSeachOpen] = useState(false);
+  const [innerInputValue, setInnerInputValue] = useState('');
   const [serach, setSeach] = useState('');
+  const [mentionOpen, setMentionOpen] = useState(false);
 
   const [uploding, setUploding] = useState(false);
   const [msgIndex, setMsgIndex] = useState(null);
@@ -52,6 +56,7 @@ export default function ChatSection() {
   const [type, setType] = useState('MSG');
   const [timeOut, addTimeout] = useState(null);
   const [fileUpload, setFileUplaod] = useState(false);
+  const [msgFocus, setMsgFoucs] = useState(null);
 
   const [file, setFile] = useState();
   const fileRef = useRef();
@@ -71,16 +76,15 @@ export default function ChatSection() {
   const chatRef = useRef();
   const [placeHolder, setPlaceHolder] = useState();
   const groupName = arr => {
-    let name = 'Me,';
+    let name = 'Me';
     let count = 0;
     arr.forEach((element, index) => {
       if (count < 2) {
         if (element.user.user.id !== me.id) {
-          name = name + element.user.user.name;
+          name = name + ',' + element.user.user.name;
           count = count + 1;
         }
-        if (arr.length > 2 && count === 1) {
-          name = name + ',';
+        if (arr.length > 1 && count === 1) {
         }
       }
     });
@@ -169,10 +173,22 @@ export default function ChatSection() {
       setPlaceHolder();
     }
     changeChat();
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
+    setTimeout(() => {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    }, 10);
   }, [user, chat_, group_]);
+  useEffect(() => {
+    if (msgFocus) {
+      const itemElement = chatContainerRef.current.querySelector(`[data-id="${msgFocus}"]`);
+      if (itemElement) {
+        itemElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setMsgIndex(msgFocus);
+      }
+    }
+    setMsgFoucs(null);
+  }, [msgFocus]);
   let userChannelId = 'x';
   let meId = 'y';
   if (user != null) {
@@ -187,26 +203,27 @@ export default function ChatSection() {
   const [userChaneel, ___] = useChannel(me.id, () => { });
 
   useEffect(() => {
-    userChaneel.subscribe('typing', data => {
-      setTyping(data.data.chatId, data.data.typing);
-      if (timeOut != null) {
-        clearTimeout(timeOut);
-      }
-      let timeOutId = setTimeout(() => {
-        setTyping(data.data.chatId, false);
-      }, 2000);
-
-      addTimeout(timeOutId);
-    });
-    return () => {
-      userChaneel.unsubscribe('typing');
-    };
+    // userChaneel.subscribe('typing', data => {
+    //   setTyping(data.data.chatId, data.data.typing);
+    //   if (timeOut != null) {
+    //     clearTimeout(timeOut);
+    //   }
+    //   let timeOutId = setTimeout(() => {
+    //     setTyping(data.data.chatId, false);
+    //   }, 2000);
+    //
+    //   addTimeout(timeOutId);
+    // });
+    // return () => {
+    //   userChaneel.unsubscribe('typing');
+    // };
   }, []);
 
   const adjustInputHeight = () => {
     chatRef.current.style.height = 'auto';
     chatRef.current.style.height = `${chatRef.current.scrollHeight}px`;
   };
+
   const SearchPopuu = styled(Popup)`
     &-content {
       border: none;
@@ -216,18 +233,17 @@ export default function ChatSection() {
       border-radius: 10px;
     }
   `;
-
-  const handleInputChange = e => {
+  const handleInputChange = event => {
     adjustInputHeight();
-    // try {
-    //   if (chatRef.current.value !== '') {
-    //     chatUserChannel.publish('typing', { typing: true, chatId: chatId });
-    //   } else {
-    //     chatUserChannel.publish('typing', { typing: false, chatId: chatId });
-    //   }
-    // } catch (error) {
-    //   console.log(error);
-    // }
+    let parts = chatRef.current.value.split(' ');
+    if (parts.at(-1).slice(0, 1) === '@') {
+      setMentionOpen(true);
+    } else {
+      setMentionOpen(false);
+    }
+    const { selectionStart } = event.target;
+    const { top, left } = getPositionAtCursor(selectionStart);
+    setMenuPosition({ top, left });
   };
 
   const handleFileChange = async e => {
@@ -369,8 +385,38 @@ export default function ChatSection() {
   const [server_channel, _] = useChannel('server', () => { });
   let accessToken = localStorage.getItem('token');
 
+  const getPositionAtCursor = position => {
+    const textarea = chatRef.current;
+    const { offsetTop, offsetLeft, offsetHeight, offsetWidth } = textarea;
+    const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight, 10);
+
+    const rows = Math.floor(offsetHeight / lineHeight);
+    const cols = Math.floor(offsetWidth / textarea.cols);
+
+    // Calculate caret position
+    const { top: scrollTop, left: scrollLeft } = textarea;
+    const scrollOffsetX = textarea.scrollLeft;
+    const scrollOffsetY = textarea.scrollTop;
+    let posx = position - cols * (rows - 1);
+    if (posx < 0) {
+      posx = posx * -1;
+    }
+
+    const caretX = offsetLeft + posx * (textarea.clientWidth / cols);
+    console.log(caretX, posx, rows);
+
+    const caretY = offsetTop + lineHeight * Math.floor(position / cols) - scrollOffsetY;
+
+    // Calculate menu position
+    const menuTop = caretY + lineHeight;
+    const menuLeft = caretX;
+
+    return { top: menuTop, left: menuLeft };
+  };
+
   const handleSendMsg = async e => {
     if (chatRef.current.value.trim() !== '' && e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
       if (chat.length === 0) {
         await instance.post(
           '/user/newchat',
@@ -449,7 +495,6 @@ export default function ChatSection() {
       setPlaceHolder(`Message ${user.groupChat ? '#' + user.groupChat.name : user.user.name}`);
       adjustInputHeight();
     } else if (e.shiftKey && e.key === 'Enter') {
-      // chatRef.current.value = chatRef.current.value.slice(0) + '\n';
     }
   };
   const ManageGroupPopup = styled(Popup)`
@@ -497,7 +542,7 @@ export default function ChatSection() {
               </div>
             }
           >
-            {close => <GroupManagePopup close={close} groupChat={user} />}
+            {close => <GroupManagePopup close={close} groupChat={user} type={'G'} />}
           </ManageGroupPopup>
           <div className="h-[60%] w-[15%] bg-[#696D78] rounded-[10px] absolute right-[3%] top-[20%] flex p-3">
             <img alt="" src={Search} className="mr-3" />
@@ -516,23 +561,30 @@ export default function ChatSection() {
         </div>
       ) : (
         <div className="w-[100%] h-[9%]   flex    bg-[#2F3137] border-[2px] border-none border-b-[#353B43] relative">
-          <img src={user.user.profilePic} alt={'Loading...'} className="rounded-[2px] h-[45px] w-[45px]  m-4 " />
-          <div className="text-[20px] font-[700] ml-2 mt-5   text-white">{user.user.name}</div>
+          <ManageGroupPopup
+            modal
+            position="center"
+            closeOnDocumentClick={false}
+            trigger={
+              <div className="flex  py-1 px-3 hover:bg-[#4e5055]  flex-wrap justify-center content-center h-[80%] mt-2 rounded-[10px] cursor-pointer">
+                <img src={user.user.profilePic} alt={'Loading...'} className="rounded-[2px] h-[45px] w-[45px]   " />
+                <div className="text-[20px] font-[700] ml-2    text-white">{user.user.name}</div>
+              </div>
+            }
+          >
+            {close => <GroupManagePopup close={close} type={'C'} useR={user} chat={chat} />}
+          </ManageGroupPopup>
+
           <div className="h-[60%] w-[15%] bg-[#696D78] rounded-[10px] absolute right-[3%] top-[20%] flex p-3">
-            <img
-              alt=""
-              src={Search}
-              className="mr-3"
-              value={serach}
-              onChange={e => {
-                setSeach(e.target.value);
-              }}
-            />
+            <img alt="" src={Search} className="mr-3" value={serach} />
             <input
               placeholder="Search..."
               className="bg-transparent outline-none text-white  w-[70%]"
               onClick={() => {
                 setSeachOpen(true);
+              }}
+              onChange={e => {
+                setSeach(e.target.value);
               }}
             />
           </div>
@@ -540,7 +592,7 @@ export default function ChatSection() {
       )}
       {seachOpen ? (
         <div className="absolute right-[2%] top-[8%] w-[410px] h-[450px] z-50">
-          <SeacrchMsgesPopup msges={chat} query={serach} close={setSeachOpen} />
+          <SeacrchMsgesPopup msges={chat} query={serach} close={setSeachOpen} setMsgFocus={setMsgFoucs} />
         </div>
       ) : null}
 
@@ -557,21 +609,23 @@ export default function ChatSection() {
             date = 'today';
           }
           return pDate < today ? (
-            <div style={{ marginTop: `${index === 0 ? 'auto' : null}` }}>
+            <div style={{ marginTop: `${index === 0 ? 'auto' : null}` }} key={msg.id} tabIndex={0} data-id={msg.id}>
               {index === 0 || new Date(chat.at(index - 1).createdAt).setHours(0, 0, 0, 0) < pDate ? (
                 <div className="flex">
                   <div className="w-[48%] left-[2%]  border-[1px] h-0 relative top-3 border-[#515357]"></div>
 
-                  <div className="text-[#fbfbfb] ml-3 mr-3 text-center  w-[140px] ">{date}</div>
+                  <div className="text-[#fbfbfb] ml-3 mr-5 text-center  w-[140px] ">{date}</div>
 
-                  <div className="w-[48%] right-[2%]  border-[1px] h-0  relative top-3 border-[#515357]"></div>
+                  <div className="w-[45%] right-[3%]  border-[1px] h-0  relative top-3 border-[#515357]"></div>
                 </div>
               ) : null}
               <div
+                key={msg.id}
+                tabIndex={0}
+                data-id={msg.id}
                 className=" "
-                key={index}
                 onMouseEnter={() => {
-                  setMsgIndex(index);
+                  setMsgIndex(msg.id);
                 }}
                 onMouseLeave={() => {
                   setMsgIndex(null);
@@ -581,7 +635,7 @@ export default function ChatSection() {
                   msg={msg}
                   chatId={chatId}
                   from={me.id}
-                  clicked={msgIndex === index}
+                  clicked={msgIndex === msg.id}
                   type={user.groupChat ? 'group' : 'user'}
                   to={
                     user.groupChat
@@ -594,21 +648,23 @@ export default function ChatSection() {
               </div>
             </div>
           ) : (
-            <div style={{ marginTop: `${index === 0 ? 'auto' : null}` }}>
+            <div style={{ marginTop: `${index === 0 ? 'auto' : null}` }} key={msg.id} tabIndex={0} data-id={msg.id}>
               {index === 0 || new Date(chat.at(index - 1).createdAt).setHours(0, 0, 0, 0) < pDate ? (
                 <div className="flex">
                   <div className="w-[48%] left-[2%]  border-[1px] h-0 relative top-3 border-[#515357]"></div>
 
-                  <div className="text-[#fbfbfb] ml-3 mr-3 text-center w-[140px]   ">Today</div>
+                  <div className="text-[#fbfbfb] ml-3 mr-5 text-center w-[140px]   ">Today</div>
 
-                  <div className="w-[48%] right-[2%]  border-[1px] h-0  relative top-3 border-[#515357]"></div>
+                  <div className="w-[45%] right-[3%]  border-[1px] h-0  relative top-3 border-[#515357]"></div>
                 </div>
               ) : null}
               <div
+                key={msg.id}
+                tabIndex={0}
+                data-id={msg.id}
                 className="   "
-                key={index}
                 onMouseEnter={() => {
-                  setMsgIndex(index);
+                  setMsgIndex(msg.id);
                 }}
                 onMouseLeave={() => {
                   setMsgIndex(null);
@@ -617,7 +673,7 @@ export default function ChatSection() {
                 <MsgElement
                   msg={msg}
                   chatId={chatId}
-                  clicked={msgIndex === index}
+                  clicked={msgIndex === msg.id}
                   from={me.id}
                   type={user.groupChat ? 'group' : 'user'}
                   to={
@@ -668,16 +724,29 @@ export default function ChatSection() {
           </div>
         </div>
       ) : null}
+      {mentionOpen ? (
+        <div
+          className="w-[400px] max-h-[250px]  absolute "
+          style={{
+            position: 'absolute',
+            top: menuPosition.top,
+            left: menuPosition.left
+          }}
+        >
+          <MentionMenu users={user.user} type={'C'} />
+        </div>
+      ) : null}
       <div className="p-4  pl-5 bg-[#40444A] rounded-[10px] w-[95%] ml-6 mt-2  max-h-[30%]  flex justify-end    h-auto   ">
         <textarea
           ref={chatRef}
           className="bg-[#40444A]  outline-none border-none w-[90%] max-w-[90%]  text-white h-[20px]   max-h-[200px]   flex-grow  overflow-y-scroll "
-          onChange={handleInputChange}
+          onInput={handleInputChange}
           placeholder={`Message ${user.groupChat ? '#' + user.groupChat.name : user.user.name}`}
           onKeyDown={handleSendMsg}
           tabIndex={0}
-        ></textarea>
-
+        >
+          {innerInputValue}
+        </textarea>
         <img
           alt="Link"
           src={PaperClip}

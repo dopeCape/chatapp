@@ -75,6 +75,7 @@ export default function MainScreen() {
           }
         }, 3000);
         // ...
+        //
       } else {
         updateUser('logout');
         setAbly(null);

@@ -25,16 +25,15 @@ export default function Useruser({
   const [fchat, fsetChat] = useState(null);
 
   const groupName = arr => {
-    let name = 'Me,';
+    let name = 'Me';
     let count = 0;
     arr.forEach((element, index) => {
       if (count < 2) {
         if (element.user.user.id !== me.id) {
-          name = name + element.user.user.name;
+          name = name + ',' + element.user.user.name;
           count = count + 1;
         }
         if (arr.length > 2 && count === 1) {
-          name = name + ',';
         }
       }
     });
@@ -56,7 +55,7 @@ export default function Useruser({
       });
       fsetChat(typing[0]);
     }
-  }, [chat, me, user]);
+  }, [chat, me, user, groupChat]);
 
   const handleSetProfile = () => {
     setChat(user);
@@ -118,7 +117,7 @@ export default function Useruser({
           </div>
         ) : (
           <div className="w-[30px] h-[20px] bg-[#DA4D4D] text-white rounded-[14px]  flex flex-wrap justify-center content-center   absolute right-[50%]">
-            '9+'
+            9+
           </div>
         )
       ) : null}

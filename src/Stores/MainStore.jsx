@@ -266,6 +266,15 @@ const useGroupChatStore = create(
         chats: x
       }));
     },
+    deleteGroup: groupChatId => {
+      let x = get().chats;
+      x = x.filter(y => {
+        return y.groupChat.id !== groupChatId;
+      });
+      set(state => ({
+        chats: x
+      }));
+    },
     addUser: (w, i) => {
       set(state => ({
         chats: state.chats.map(x => {

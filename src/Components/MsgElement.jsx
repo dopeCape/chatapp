@@ -14,7 +14,7 @@ import Download from '../download.svg';
 import { useUserStore } from '../Stores/MainStore';
 import { useChannel } from '@ably-labs/react-hooks';
 import ReactPlayer from 'react-player';
-import Delete from '../Vector(1).svg';
+import Delete from '../delete.svg';
 import axios from 'axios';
 import { instance } from '../axios';
 import DeleteMsgPopup from './DeleteMsgPopup';
@@ -44,26 +44,23 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
     const formattedTime = `${hours}:${minutes} ${amOrPm}`;
     setTime(formattedTime);
   }, []);
+
   function downloadFile(url, filename) {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.responseType = 'blob';
-    xhr.onload = function() {
-      if (xhr.status === 200) {
-        const blob = new Blob([xhr.response], { type: xhr.getResponseHeader('Content-Type') });
+    fetch(url)
+      .then(response => response.blob())
+      .then(blob => {
         const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = blobUrl;
         link.download = filename;
-        link.style.display = 'none';
-        document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
         URL.revokeObjectURL(blobUrl);
-      }
-    };
-    xhr.send();
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
   }
+
   function getContentHeight(content) {
     //to get the height of the editing text area
     const span = document.createElement('span');
@@ -346,9 +343,9 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
               </div>
               {msg.type === 'MSG' ? (
                 editng && msg.from.id === me.id ? (
-                  <div className=" flex">
+                  <div className=" flex bg-[#40434B] relative">
                     <textarea
-                      className="outline-none w-[75%] max-w-[75%]  bg-[#40434B] text-white border-[#585B66] border-[1px] rounded-[5px] px-1 py-3 resize-none  "
+                      className="outline-none w-[75%] max-w-[75%]  bg-[#40434B] text-white   rounded-[5px] px-1 py-3 resize-none  "
                       ref={chatRef}
                       style={{
                         height: `${getContentHeight(msg.content) + 50}px `,
@@ -364,7 +361,7 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
                     />
                     {emoji && clicked ? (
                       <div
-                        className="absolute right-[14%] bottom-[00%]
+                        className="absolute right-[14%] bottom-[20%]
           "
                       >
                         <EmojiPicker
@@ -381,7 +378,7 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
                     <img
                       src={Smile}
                       alt="Emoji"
-                      class=" dark:text-white text-[22px] cursor-pointer ml-5 w-[20px] h-[20px] mt-4"
+                      class=" dark:text-white text-[22px] cursor-pointer  w-[20px] h-[20px] absolute bottom-[5%] left-[75%]"
                       onClick={() => {
                         setEmoji(!emoji);
                       }}
@@ -389,7 +386,7 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
                     <img
                       src={Cross}
                       alt="Close"
-                      class=" dark:text-white text-[22px] cursor-pointer ml-5 w-[20px] h-[20px] mt-4"
+                      class=" dark:text-white text-[22px] cursor-pointer ml-5 w-[20px] h-[20px] absolute bottom-[5%] left-[76%]"
                       onClick={() => {
                         setEmoji(false);
                         setEditin(false);

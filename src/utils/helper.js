@@ -1,3 +1,5 @@
+import { Fzf } from 'fzf';
+
 //Dear maintainer:
 //once you are done trying to "optimize" this func,
 //and have realized what a terrble mistake is was,
@@ -32,7 +34,7 @@ function calculateLevenshteinDistance(a, b) {
 }
 function search(users, query, user) {
   users = users.filter(x => {
-    return x.user.id != user.id;
+    return x.user.id !== user.id;
   });
   let results = users.map(object => {
     const similarity = calculateLevenshteinDistance(query, object.user.name.toLowerCase());
@@ -53,7 +55,6 @@ function simpleSearch(users, query) {
       const similarity = calculateLevenshteinDistance(query, object.user.name.toLowerCase());
       return { object, similarity };
     });
-
     // Sort the results based on similarity
     results.sort((a, b) => a.similarity - b.similarity);
     results = results.map(x => x.object);
@@ -65,16 +66,9 @@ function simpleSearch(users, query) {
 }
 function fileSeacrh(list, query) {
   try {
-    let results = list.map(object => {
-      const similarity = calculateLevenshteinDistance(query, object.content.toLowerCase());
-      return { object, similarity };
-    });
-
-    // Sort the results based on similarity
-    results.sort((a, b) => a.similarity - b.similarity);
-    results = results.map(x => x.object);
-
-    return results;
+    const fzf = new Fzf(list, { selector: x => x.content });
+    let res = fzf.find(query);
+    return res;
   } catch (error) {
     console.log(error);
   }

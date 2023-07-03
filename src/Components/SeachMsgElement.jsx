@@ -1,6 +1,17 @@
 import React from 'react';
 import { useUserStore } from '../Stores/MainStore';
 import LinkHighlighter from './LinkHeilight';
+function HighlightedText({ text, start, end }) {
+  const highlightedPart = text.slice(start, end);
+
+  return (
+    <span>
+      {text.slice(0, start)}
+      <mark>{highlightedPart}</mark>
+      {text.slice(end)}
+    </span>
+  );
+}
 
 export default function SeachMsgElement({ msg }) {
   const me = useUserStore(state => state.user);

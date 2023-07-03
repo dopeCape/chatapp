@@ -6,8 +6,7 @@ import Msg from '../Vector(1).svg';
 import SeachFileElement from './SeacrhFileElement';
 import SeachMsgElement from './SeachMsgElement';
 import { fileSeacrh } from '../utils/helper';
-
-export default function SeacrchMsgesPopup({ msges, query, close }) {
+export default function SeacrchMsgesPopup({ msges, query, close, setMsgFocus }) {
   function containsURL(message) {
     const urlRegex = /(?:(?:https?:\/\/)|(?:www\.))\S+/gi;
     return urlRegex.test(message);
@@ -36,7 +35,11 @@ export default function SeacrchMsgesPopup({ msges, query, close }) {
     if (query.length === 0) {
       setToRender(msges_);
     } else {
+      console.log(msges_);
       let sorted_files = fileSeacrh(msges_, query);
+      sorted_files = sorted_files.map(x => {
+        return x.item;
+      });
 
       setToRender(sorted_files);
     }
@@ -85,14 +88,19 @@ export default function SeacrchMsgesPopup({ msges, query, close }) {
         </button>
       </div>
       <div className="w-[85%] ml-8 h-0 border-[1px] border-[#585B66] mt-5"></div>
-      <div className=" max-h-[280px] mt-5 overflow-y-scroll">
+      <div className=" max-h-[280px] mt-5 overflow-y-scroll max-w-[90%] overflow-x-hidden">
         {toRender.map(msg => {
           return filter === 'F' ? (
             <div className="ml-8">
               <SeachFileElement msg={msg} />
             </div>
           ) : filter === 'M' || filter === 'L' ? (
-            <div className="ml-8 mt-3">
+            <div
+              className="ml-8 mt-3 cursor-pointer"
+              onClick={() => {
+                setMsgFocus(msg.id);
+              }}
+            >
               <SeachMsgElement msg={msg} />
             </div>
           ) : null;
