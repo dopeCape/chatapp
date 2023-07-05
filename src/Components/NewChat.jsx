@@ -50,6 +50,8 @@ export default function NewChat({ close }) {
     try {
       if (seUser) {
         setSelectedChat(seUser);
+
+        close();
       } else {
         setError('*Select a user');
       }

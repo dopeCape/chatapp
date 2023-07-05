@@ -5,9 +5,7 @@ import { auth } from '../firebase';
 import Popup from 'reactjs-popup';
 import 'reactjs-popup/dist/index.css';
 import Seting from '../settings.svg';
-
 import { useChannel } from '@ably-labs/react-hooks';
-
 import {
   useChatStore,
   useGroupChatStore,
@@ -19,14 +17,13 @@ import {
 } from '../Stores/MainStore';
 import { instance } from '../axios';
 import WorkSpaceSelector from './WorkSpaceSelector';
-import { setRef } from '@mui/material';
 import { styled } from 'styled-components';
 import WorkSpaceCreatePopUp from './WorkSpaceCreatePopUp';
-
 export default function SideBar({ setter, type }) {
   const [open, setOpen] = useState(false);
   const [req, setReq] = useState(false);
   const [error, setError] = useState(null);
+  const [createWorkspacePopUpOpen, setCreateWorkspcePopUpOpen] = useState(false);
   const [clicked, setClicked] = useState(0);
   const [worspacePopUpSize, setWorspacePupUpSize] = useState(600);
 
@@ -41,12 +38,11 @@ export default function SideBar({ setter, type }) {
     return arr; // for testing
   }
   const workspaceNameRef = useRef(null);
-
   const updateUser = useUserStore(state => state.updateUserState);
   const addWorkSpace = useUserStore(state => state.addWorkSpace);
-
   const setSelected = useSelectedStore(state => state.updateSelectedState);
   const groupChat = useGroupChatStore(state => state.chats);
+  const friends = useChatStore(state => state.chats);
   const updateSelectedWorkSpace = useWorkSpaceStore(state => state.updateSelectedWorkspace);
   const updateWorkspace = useUserStore(state => state.updateWorkspace);
   const removeMemberFromGrup = useGroupChatStore(state => state.removeuser);
@@ -71,24 +67,19 @@ export default function SideBar({ setter, type }) {
   const addChat = useChatStore(state => state.addChat);
   const addMsg = useChatStore(state => state.addMsg);
   const inclrementGroupUnRead = useGroupChatStore(state => state.incrementUnRead);
-
   const deleteMsg = useChatStore(state => state.deleteMsg);
   const selecteChat = useSelectedChatStore(state => state.user);
   const deleteGroupMsg = useGroupChatStore(state => state.deleteMsg);
-
   const editGroupMsg = useGroupChatStore(state => state.editMsg);
   const editMsg = useChatStore(state => state.editMsg);
-
   const me = useUserStore(state => state.user);
-
-  useUserStore.subscribe(state => state.user, console.log);
-
   let selected = useSelectedStore(state => state.user);
   const setSelectedProfile = useSelectedStore(state => state.updateSelectedState);
   const handleNewMemberInWokrSpace = msg => {
     addUserToGroup(msg.data.newUser, msg.data.chiatId);
     updateGroupChat(msg.data.msg, msg.data.chiatId);
     addUserToWorkSpace(msg.data.user, msg.data.workSpaceID);
+    inclrementGroupUnRead(msg.data.chiatId);
   };
   const playSound = () => {
     try {
@@ -101,7 +92,6 @@ export default function SideBar({ setter, type }) {
       console.log(error);
     }
   };
-
   const handleCreateWorkSpace = async close => {
     try {
       const accessToken = localStorage.getItem('token');
@@ -129,9 +119,7 @@ export default function SideBar({ setter, type }) {
         } else {
           addWorkSpace(res.data.workspace_);
           addGroupChat(res.data.groupChat);
-
           close();
-
           setReq(false);
         }
       } else {
@@ -179,6 +167,7 @@ export default function SideBar({ setter, type }) {
           updateSelectedChatStore(new_chat.friend);
         } else {
           playSound();
+          addUndread(new_chat.id);
         }
       }
     });
@@ -186,18 +175,30 @@ export default function SideBar({ setter, type }) {
       msg.data.newUser.forEach(x => {
         addUserToGroup(x, msg.data.chatId);
       });
-
       updateGroupChat(msg.data.msg, msg.data.chatId);
-
-      inclrementGroupUnRead(msg.data.chatId);
+      if (selecteChat.chatId !== msg.data.chatId) {
+        inclrementGroupUnRead(msg.data.chatId);
+      }
+      groupChat.forEach(x => {
+        if (x.groupChat.id === msg.data.chatId && selecteChat.chatId !== msg.data.chatId) {
+          if (!x.muted) {
+            playSound();
+          }
+        }
+      });
     });
 
     my_channel.subscribe('new-memeber-workspace', msg => {
       handleNewMemberInWokrSpace(msg);
+
+      playSound();
     });
     my_channel.subscribe('new-workspace', msg => {
       addWorkSpace(msg.data.workspace);
       addGroupChat(msg.data.GroupChat);
+      inclrementGroupUnRead(msg.data.groupChat.groupChat.id);
+
+      playSound();
     });
     my_channel.subscribe('new-group', msg => {
       addGroupChat(msg.data.GroupChat);
@@ -217,7 +218,13 @@ export default function SideBar({ setter, type }) {
         if (selecteChat && selecteChat.user) {
           if (selecteChat.user.id !== msg.data.msg.from.id && selectedWorkspace.id !== msg.data.workspaceId) {
             addUndread(msg.data.friendId);
-            playSound();
+            friends.forEach(x => {
+              if (x.id === msg.data.friendId) {
+                if (!x.muted) {
+                  playSound();
+                }
+              }
+            });
           } else {
             await instance.post(
               '/user/handleread',
@@ -234,7 +241,13 @@ export default function SideBar({ setter, type }) {
         } else {
           addUndread(msg.data.friendId);
 
-          playSound();
+          friends.forEach(x => {
+            if (x.id === msg.data.friendId) {
+              if (!x.muted) {
+                playSound();
+              }
+            }
+          });
         }
       }
       addMsg(msg.data.msg);
@@ -245,7 +258,13 @@ export default function SideBar({ setter, type }) {
         if (selecteChat && selecteChat.groupChat) {
           if (selecteChat.groupChatId !== data.data.chatId) {
             inclrementGroupUnRead(data.data.chatId);
-            playSound();
+            groupChat.forEach(x => {
+              if (x.groupChat.id === data.data.chatId && selecteChat.chatId !== data.data.chatId) {
+                if (!x.muted) {
+                  playSound();
+                }
+              }
+            });
           } else {
             await instance.post(
               '/gchat/unread',
@@ -261,7 +280,13 @@ export default function SideBar({ setter, type }) {
           }
         } else {
           inclrementGroupUnRead(data.data.chatId);
-          playSound();
+          groupChat.forEach(x => {
+            if (x.groupChat.id === data.data.chatId && selecteChat.chatId !== data.data.chatId) {
+              if (!x.muted) {
+                playSound();
+              }
+            }
+          });
         }
       }
       updateGroupChat(data.data.msg.msg, data.data.chatId);
@@ -299,6 +324,13 @@ export default function SideBar({ setter, type }) {
       removeMemberFromGrup(data.data.groupId, data.data.groupChatRefId);
       updateGroupChat(data.data.msg, data.data.groupId);
       inclrementGroupUnRead(data.data.groupId);
+      groupChat.forEach(x => {
+        if (x.groupChat.id === data.data.groupId && selecteChat.chatId !== data.data.groupId) {
+          if (!x.muted) {
+            playSound();
+          }
+        }
+      });
     });
 
     my_channel.subscribe('group-delete', data => {
@@ -318,33 +350,19 @@ export default function SideBar({ setter, type }) {
     return () => {
       my_channel.unsubscribe('send-request');
       my_channel.unsubscribe('workspace-update');
-
       my_channel.unsubscribe('group-delete');
-
       my_channel.unsubscribe('new-memeber-workspace');
-
       my_channel.unsubscribe('new-workspace');
-
       my_channel.unsubscribe('new-chat');
-
       my_channel.unsubscribe('new-msg');
-
       my_channel.unsubscribe('new-msg-group');
-
       my_channel.unsubscribe('new-msg');
-
       my_channel.unsubscribe('delete-msg');
-
       my_channel.unsubscribe('delete-msg-delete');
-
       my_channel.unsubscribe('group-remove-member');
-
       my_channel.unsubscribe('group-remove');
-
       my_channel.unsubscribe('edit-msg');
-
       my_channel.unsubscribe('edit-msg-group');
-
       my_channel.unsubscribe('new-group');
       my_channel.unsubscribe('new-memeber-group');
     };
@@ -377,26 +395,34 @@ export default function SideBar({ setter, type }) {
       <div></div>
 
       {me.admin ? (
-        <CreateWorkspacePopUp
-          height={worspacePopUpSize}
-          modal
-          closeOnDocumentClick={false}
-          position="center center"
-          closeOnEscape={false}
-          trigger={
-            <button className="rounded-[10px] bg-[#85858526] h-[60px] w-[60px] ml-4 pt-1    ">
-              <i class="fa-solid fa-plus text-white text-[25px]"></i>
-            </button>
-          }
+        <button
+          className="rounded-[10px] bg-[#85858526] h-[60px] w-[60px] ml-4 pt-1    "
+          onClick={() => {
+            setCreateWorkspcePopUpOpen(true);
+          }}
         >
-          {close => <WorkSpaceCreatePopUp close={close} setSize={setWorspacePupUpSize} />}
-        </CreateWorkspacePopUp>
+          <i class="fa-solid fa-plus text-white text-[25px]"></i>
+        </button>
       ) : null}
+      <CreateWorkspacePopUp
+        height={worspacePopUpSize}
+        modal
+        open={createWorkspacePopUpOpen}
+        onClose={() => {
+          setCreateWorkspcePopUpOpen(false);
+        }}
+        closeOnDocumentClick={false}
+        position="center center"
+        closeOnEscape={false}
+      >
+        {close => <WorkSpaceCreatePopUp close={close} setSize={setWorspacePupUpSize} />}
+      </CreateWorkspacePopUp>
+
       <button className="bg-red dark:text-white  absolute bottom-[13%] ml-4" onClick={handleLogout}>
         Logout
       </button>
       <button className="w-[60px] h-[60px] bg-[#85858526] rounded-[10px] absolute bottom-[2%] ml-4  ">
-        <img alt="setting" className="pl-4" src={Seting} />
+        <img alt="setting" className="pl-4 animate-pulse" src={Seting} />
       </button>
     </div>
   ) : (

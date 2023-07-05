@@ -20,7 +20,7 @@ export default function SeachMsgElement({ msg }) {
       <img alt="loading.." src={msg.from.profilePic} className="w-[50px] h-[50px] rounded-[5px]" />
       <div className="flex flex-col ml-2 max-w-[280px] ">
         <div className="font-[700]  relative bottom-1">{msg.from.id === me.id ? 'Me' : msg.from.name}</div>
-        <LinkHighlighter text={msg.content} />
+        <LinkHighlighter text_={msg.content} currentUser={me.id} />
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ import Edit from '../Group.svg';
 import Replay from '../solar_reply-linear.svg';
 import Forward from '../solar_forward-linear.svg';
 import Download from '../download.svg';
-import { useUserStore } from '../Stores/MainStore';
+import { useSelectedChatStore, useUserStore } from '../Stores/MainStore';
 import { useChannel } from '@ably-labs/react-hooks';
 import ReactPlayer from 'react-player';
 import Delete from '../delete.svg';
@@ -21,15 +21,22 @@ import DeleteMsgPopup from './DeleteMsgPopup';
 import ForwardPopUp from './ForwardPopUp';
 import FloatingVideoPlayer from './FloatingVideoPlayer';
 import ReplyPopupC from './ReplyPopup';
+import { addUserIdToMentions } from '../utils/mention';
 
-export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
+export default function MsgElement({ msg, chatId, from, to, type, clicked, replySetter, msgFocus }) {
+  let user = useSelectedChatStore(state => state.user);
+
   const me = useUserStore(state => state.user);
   const chatRef = useRef();
   const [editng, setEditin] = useState(false);
-  const [editedValue, setEditedValue] = useState(msg.content);
+  const [editedValue, setEditedValue] = useState(() => {
+    const regex = /\[(.*?)\]/g;
+    return msg.content.replace(regex, '');
+  });
   const [time, setTime] = useState();
+  const [deleteMsgOpen, setDeleteMsgOpen] = useState(false);
+  const [editMsgOpen, setEditMsgOpen] = useState(false);
   const [imgOpen, setImgOpen] = useState(false);
-
   const [emoji, setEmoji] = useState(false);
   const [value, setValue] = useState(msg.content);
 
@@ -124,8 +131,10 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
   const handleEdit = async e => {
     let value = editedValue;
     try {
-      if (e.keyCode === 13 && value !== '' && !e.shiftKey) {
-        if (msg.type === 'group') {
+      if (value !== '') {
+        if (user.groupChat) {
+          console.log('asdf');
+          value = addUserIdToMentions(user.groupChat.groupChatRef, value, 'G');
           await instance.post(
             '/msges/editmsggroup',
             {
@@ -144,6 +153,7 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
 
           setEditin(false);
         } else {
+          value = addUserIdToMentions([user], value, 'C');
           await instance.post(
             '/msges/editmsg',
             {
@@ -162,7 +172,7 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
 
           setEditin(false);
         }
-      } else if (value.length === 0 && e.keyCode === 13) {
+      } else if (value.length === 0) {
         await handleDelete();
       }
     } catch (error) {
@@ -192,15 +202,7 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
       border-radius: 10px;
     }
   `;
-  const ReplyPopup = styled(Popup)`
-    &-content {
-      border: none;
-      height: ${props => props.height};
-      padding: 0;
-      width: 600px;
-      border-radius: 10px;
-    }
-  `;
+
   const ForwardPopup = styled(Popup)`
     &-content {
       border: none;
@@ -212,25 +214,62 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
   `;
 
   return (
-    <div className="relative   mt-8 ">
+    <div className="relative mt-8 ">
+      {msg.isReply ? (
+        !msg.reptedTO ? (
+          <div className="  text-white flex">
+            <img src={Replay} className="w-[20px] h-[20px] ml-6 mr-1" alt="Loading.." />
+            <div>replyed message was deleted</div>
+          </div>
+        ) : (
+          <div className="flex">
+            <img src={Replay} className="w-[20px] h-[20px] ml-6 mr-1" alt="Loading.." />
+            <div className="text-white">replyed to:</div>
+            <div
+              className="text-[#4D96DA] cursor-pointer ml-1"
+              onClick={() => {
+                msgFocus(msg.reptedTO.id);
+              }}
+            >
+              {msg.reptedTO.from.name}
+            </div>
+          </div>
+        )
+      ) : null}
       {clicked && msg.type !== 'CMD' && msg.from.id === me.id && msg.type === 'MSG' ? (
-        <div className="z-10 w-[150px] h-[40px] bg-[#585B66] rounded-[5px] flex left-[87.7%]  absolute flex-wrap justify-evenly content-center ">
+        <div className="z-10 w-[200px] h-[40px] bg-[#585B66] rounded-[5px] flex left-[80%]  absolute flex-wrap justify-evenly content-center ">
+          <div
+            className="flex  h-full  w-[25%] justify-evenly  content-center flex-wrap  hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer"
+            onClick={() => {
+              replySetter(msg);
+            }}
+          >
+            <img alt="Replay" src={Replay} className="w-[25px] h-[25px] cursor-pointer  " />
+          </div>
+          <div
+            className="flex  h-full  w-[25%] justify-evenly  content-center flex-wrap  hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer"
+            onClick={() => {
+              setEditMsgOpen(true);
+            }}
+          >
+            <img alt="Forward" src={Forward} className="w-[25px] h-[25px] cursor-pointer  " />
+          </div>
+
           <ForwardPopup
+            open={editMsgOpen}
+            onClose={() => {
+              setEditMsgOpen(false);
+            }}
             position={'center center'}
             closeOnDocumentClick={false}
             modal
             closeOnEscape={false}
             height="330px"
-            trigger={
-              <div className="flex  h-full  w-[33%] justify-evenly  content-center flex-wrap  hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer">
-                <img alt="Forward" src={Forward} className="w-[25px] h-[25px] cursor-pointer  " />
-              </div>
-            }
           >
             {close => <ForwardPopUp close={close} msg={msg} time={time} />}
           </ForwardPopup>
 
-          <div className="flex  h-full   w-[33%] flex-wrap justify-evenly  content-center hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer">
+          <div className="flex  h-full   w-[25%] flex-wrap justify-evenly  content-center hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer">
             <img
               alt="Edit"
               src={Edit}
@@ -240,49 +279,79 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
               }}
             />
           </div>
+          <div
+            className="flex   h-full  w-[25%] justify-evenly  content-center flex-wrap hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer"
+            onClick={() => {
+              setDeleteMsgOpen(true);
+            }}
+          >
+            <img alt="Delete" src={Delete} className="w-[16px] h-[16px] " />
+          </div>
+
           <DeletePopup
             height="330px"
+            open={deleteMsgOpen}
+            onClose={() => {
+              setDeleteMsgOpen(false);
+            }}
             position={'center center'}
             closeOnDocumentClick={false}
             modal
             closeOnEscape={false}
-            trigger={
-              <div className="flex   h-full  w-[33%] justify-evenly  content-center flex-wrap hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer">
-                <img alt="Delete" src={Delete} className="w-[16px] h-[16px] " />
-              </div>
-            }
           >
             {close => <DeleteMsgPopup msg={msg} close={close} time={time} deleteFunc={handleDelete} />}
           </DeletePopup>
         </div>
       ) : clicked && msg.type !== 'CMD' && msg.from.id === me.id ? (
-        <div className="z-10 w-[100px] h-[40px] bg-[#585B66] rounded-[5px] flex  left-[91.8%]  absolute flex-wrap justify-evenly content-center">
+        <div className="z-10 w-[150px] h-[40px] bg-[#585B66] rounded-[5px] flex  left-[85%]  absolute flex-wrap justify-evenly content-center">
+          <div
+            className="flex  h-full  w-[33%] justify-evenly  content-center flex-wrap  hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer"
+            onClick={() => {
+              replySetter(msg);
+            }}
+          >
+            <img alt="Replay" src={Replay} className="w-[25px] h-[25px] cursor-pointer  " />
+          </div>
+          <div
+            className="flex  h-full  w-[33%] justify-evenly  content-center flex-wrap  hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer"
+            onClick={() => {
+              setEditMsgOpen(true);
+            }}
+          >
+            <img alt="Forward" src={Forward} className="w-[25px] h-[25px] cursor-pointer  " />
+          </div>
           <ForwardPopup
             position={'center center'}
             closeOnDocumentClick={false}
+            open={editMsgOpen}
+            onClose={() => {
+              setEditMsgOpen(false);
+            }}
             modal
             closeOnEscape={false}
             height={`${msg.type === 'FILE' ? '350px' : '550px'}`}
-            trigger={
-              <div className="flex  h-full  w-[50%] justify-evenly  content-center flex-wrap  hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer">
-                <img alt="Forward" src={Forward} className="w-[25px] h-[25px] cursor-pointer  " />
-              </div>
-            }
           >
             {close => <ForwardPopUp close={close} msg={msg} time={time} />}
           </ForwardPopup>
+          <div
+            className="flex   h-full  w-[33%] justify-evenly  content-center flex-wrap hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer"
+            onClick={() => {
+              setDeleteMsgOpen(true);
+            }}
+          >
+            <img alt="Delete" src={Delete} className="w-[16px] h-[16px] " />
+          </div>
 
           <DeletePopup
             height={`${msg.type === 'FILE' ? '380px' : '480px'}`}
             position={'center center'}
+            open={deleteMsgOpen}
+            onClose={() => {
+              setDeleteMsgOpen(false);
+            }}
             closeOnDocumentClick={false}
             modal
             closeOnEscape={false}
-            trigger={
-              <div className="flex   h-full  w-[50%] justify-evenly  content-center flex-wrap hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer">
-                <img alt="Delete" src={Delete} className="w-[16px] h-[16px] " />
-              </div>
-            }
           >
             {close => <DeleteMsgPopup msg={msg} close={close} time={time} deleteFunc={handleDelete} />}
           </DeletePopup>
@@ -310,20 +379,14 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
           >
             {close => <ForwardPopUp close={close} msg={msg} time={time} />}
           </ForwardPopup>
-          <ReplyPopup
-            position={'center center'}
-            closeOnDocumentClick={false}
-            modal
-            height={msg.type === 'MSG' ? '350px' : msg.type === 'FILE' ? '400px' : '600px'}
-            closeOnEscape={false}
-            trigger={
-              <div className="flex  h-full  w-[50%] justify-evenly  content-center flex-wrap  hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer">
-                <img alt="Replay" src={Replay} className="w-[25px] h-[25px] cursor-pointer  " />
-              </div>
-            }
+          <div
+            className="flex  h-full  w-[50%] justify-evenly  content-center flex-wrap  hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer"
+            onClick={() => {
+              replySetter(msg);
+            }}
           >
-            {close => <ReplyPopupC close={close} msg={msg} />}
-          </ReplyPopup>
+            <img alt="Replay" src={Replay} className="w-[25px] h-[25px] cursor-pointer  " />
+          </div>
         </div>
       ) : null}
 
@@ -356,9 +419,10 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
                         chatRef.current.style.height = `${chatRef.current.scrollHeight}px`;
                         setEditedValue(e.target.value);
                       }}
-                      onKeyDown={handleEdit}
                       value={editedValue}
+                    // value={editedValue}
                     />
+
                     {emoji && clicked ? (
                       <div
                         className="absolute right-[14%] bottom-[20%]
@@ -383,6 +447,12 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
                         setEmoji(!emoji);
                       }}
                     ></img>
+                    <button
+                      className="text-[#b5b5b5] border-none outline-none absolute bottom-[4%] left-[71%] p-0 hover:text-blue-500"
+                      onClick={handleEdit}
+                    >
+                      Save
+                    </button>
                     <img
                       src={Cross}
                       alt="Close"
@@ -394,8 +464,11 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
                     ></img>
                   </div>
                 ) : (
-                  <div className="max-w-[70%] text-[15px] text-white font-400 " style={{ whiteSpace: 'pre-line' }}>
-                    <LinkHighlighter text={msg.content} />
+                  <div
+                    className="max-w-[80%] text-[15px] overflow-hidden text-white font-400 "
+                    style={{ whiteSpace: 'pre-line' }}
+                  >
+                    <LinkHighlighter text_={msg.content} currentUser={me.id} />
                   </div>
                 )
               ) : msg.type === 'IMG' || msg.type === 'STICKER' ? (
@@ -506,7 +579,6 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked }) {
                         downloadFile(msg.url, msg.content);
                       }}
                     />
-
                     <img alt="forward" src={Forward} className="w-[18px] h-[18px] ml-2 mt-1 cursor-auto" />
                   </div>
                   <div

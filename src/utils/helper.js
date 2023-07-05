@@ -64,6 +64,16 @@ function simpleSearch(users, query) {
     console.log(error);
   }
 }
+function userSeach(users, query) {
+  try {
+    const fzf = new Fzf(users, { selector: x => x.name });
+    let res = fzf.find(query);
+
+    return res;
+  } catch (error) {
+    console.log(error);
+  }
+}
 function fileSeacrh(list, query) {
   try {
     const fzf = new Fzf(list, { selector: x => x.content });
@@ -81,4 +91,4 @@ function isValidEmail(email) {
   // Check if the email matches the regular expression
   return emailRegex.test(email);
 }
-export { search, simpleSearch, isValidEmail, fileSeacrh };
+export { search, simpleSearch, isValidEmail, fileSeacrh, userSeach };

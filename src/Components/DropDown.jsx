@@ -10,6 +10,12 @@ export default function DropDown({ heading, list, type }) {
   const selectedChat = useSelectedChatStore(state => state.user);
   const setChat = useSelectedChatStore(state => state.updateChatState);
   const [open, setOpen] = useState(true);
+  const [addFriendOpen, setAddFriendOpen] = useState(false);
+
+  const [createGroupOpen, setCreateGroupOpen] = useState(false);
+
+  const [createChannelOpen, setCreateChannelOpen] = useState(false);
+
   const [create, setCreate] = useState(false);
   const [fchat, fsetChat] = useState(list);
   const handleSetProfile = (user, index) => {
@@ -67,54 +73,76 @@ export default function DropDown({ heading, list, type }) {
         </div>
       ) : null}
       {type === 'friend' ? (
-        <AddChatPopup
-          modal
-          position="center"
-          closeOnDocumentClick={false}
-          trigger={
-            <div className="flex ml-4  ">
-              <button className="rounded-[5px] bg-[#85858526] h-[20px] w-[20px] ml-4 pt-1  flex flex-wrap content-center justify-center  ">
-                <i class="fa-solid fa-plus text-white text-[12px]"></i>
-              </button>
-              <div className="text-white ml-2 cursor-pointer ">Add teammates</div>
-            </div>
-          }
+        <div
+          className="flex ml-4  "
+          onClick={() => {
+            setAddFriendOpen(true);
+          }}
         >
-          {close => <NewChat close={close} />}
-        </AddChatPopup>
+          <button className="rounded-[5px] bg-[#85858526] h-[20px] w-[20px] ml-4 pt-1  flex flex-wrap content-center justify-center  ">
+            <i class="fa-solid fa-plus text-white text-[12px]"></i>
+          </button>
+          <div className="text-white ml-2 cursor-pointer ">Add teammates</div>
+        </div>
       ) : type === 'channel' ? (
-        <CreateChannelPopup
-          modal
-          position="center"
-          closeOnDocumentClick={false}
-          trigger={
-            <div className="flex ml-4  ">
-              <button className="rounded-[5px] bg-[#85858526] h-[20px] w-[20px] ml-4 pt-1  flex flex-wrap content-center justify-center  ">
-                <i class="fa-solid fa-plus text-white text-[12px]"></i>
-              </button>
-              <div className="text-white ml-2 cursor-pointer ">Add Channel</div>
-            </div>
-          }
+        <div
+          className="flex ml-4  "
+          onClick={() => {
+            setCreateChannelOpen(true);
+          }}
         >
-          {close => <NewGroup close={close} type={'Channel'} />}
-        </CreateChannelPopup>
+          <button className="rounded-[5px] bg-[#85858526] h-[20px] w-[20px] ml-4 pt-1  flex flex-wrap content-center justify-center  ">
+            <i class="fa-solid fa-plus text-white text-[12px]"></i>
+          </button>
+          <div className="text-white ml-2 cursor-pointer ">Add Channel</div>
+        </div>
       ) : type === 'group' ? (
-        <CreateChannelPopup
-          modal
-          position="center"
-          closeOnDocumentClick={false}
-          trigger={
-            <div className="flex ml-4  ">
-              <button className="rounded-[5px] bg-[#85858526] h-[20px] w-[20px] ml-4 pt-1  flex flex-wrap content-center justify-center  ">
-                <i class="fa-solid fa-plus text-white text-[12px]"></i>
-              </button>
-              <div className="text-white ml-2 cursor-pointer ">Add Group</div>
-            </div>
-          }
+        <div
+          className="flex ml-4  "
+          onClick={() => {
+            setCreateGroupOpen(true);
+          }}
         >
-          {close => <NewGroup close={close} type={'Group'} />}
-        </CreateChannelPopup>
+          <button className="rounded-[5px] bg-[#85858526] h-[20px] w-[20px] ml-4 pt-1  flex flex-wrap content-center justify-center  ">
+            <i class="fa-solid fa-plus text-white text-[12px]"></i>
+          </button>
+          <div className="text-white ml-2 cursor-pointer ">Add Group</div>
+        </div>
       ) : null}
+      <CreateChannelPopup
+        open={createChannelOpen}
+        onClose={() => {
+          setCreateChannelOpen(false);
+        }}
+        modal
+        position="center"
+        closeOnDocumentClick={false}
+      >
+        {close => <NewGroup close={close} type={'Channel'} />}
+      </CreateChannelPopup>
+
+      <CreateChannelPopup
+        open={createGroupOpen}
+        onClose={() => {
+          setCreateGroupOpen(false);
+        }}
+        modal
+        position="center"
+        closeOnDocumentClick={false}
+      >
+        {close => <NewGroup close={close} type={'Group'} />}
+      </CreateChannelPopup>
+      <AddChatPopup
+        modal
+        position="center"
+        open={addFriendOpen}
+        onClose={() => {
+          setAddFriendOpen(false);
+        }}
+        closeOnDocumentClick={false}
+      >
+        {close => <NewChat close={close} />}
+      </AddChatPopup>
     </div>
   );
 }

@@ -6,7 +6,10 @@ import Msg from '../Vector(1).svg';
 import SeachFileElement from './SeacrhFileElement';
 import SeachMsgElement from './SeachMsgElement';
 import { fileSeacrh } from '../utils/helper';
+import { findMentionedMessages } from '../utils/mention';
+import { useUserStore } from '../Stores/MainStore';
 export default function SeacrchMsgesPopup({ msges, query, close, setMsgFocus }) {
+  const me = useUserStore(state => state.user);
   function containsURL(message) {
     const urlRegex = /(?:(?:https?:\/\/)|(?:www\.))\S+/gi;
     return urlRegex.test(message);
@@ -20,7 +23,7 @@ export default function SeacrchMsgesPopup({ msges, query, close, setMsgFocus }) 
         if (x.type === 'VIDEO' || x.type === 'IMG' || x.type === 'STICKER') {
           msges_.push(x);
         }
-      } else if (filter === 'M' || filter === 'L') {
+      } else if (filter === 'M' || filter === 'L' || filter === 'ML') {
         if (x.type === 'MSG') {
           if (filter === 'M') {
             msges_.push(x);
@@ -28,6 +31,10 @@ export default function SeacrchMsgesPopup({ msges, query, close, setMsgFocus }) 
             if (containsURL(x.content)) {
               msges_.push(x);
             }
+          } else if (filter === 'ML') {
+            let x = findMentionedMessages(msges, me.id);
+            console.log(x);
+            msges_ = x;
           }
         }
       }
@@ -40,7 +47,6 @@ export default function SeacrchMsgesPopup({ msges, query, close, setMsgFocus }) 
       sorted_files = sorted_files.map(x => {
         return x.item;
       });
-
       setToRender(sorted_files);
     }
   }, [msges, filter, query]);
@@ -55,7 +61,7 @@ export default function SeacrchMsgesPopup({ msges, query, close, setMsgFocus }) 
           close(false);
         }}
       />
-      <div className="flex ml-8 mt-5">
+      <div className="flex ml-8 mt-5 text-sm">
         <button
           className="px-4 py-2 bg-transparent border-[1px] border-[#4D96DA] rounded-[5px] flex flex-wrap justify-center content-center outline-none"
           onClick={() => {
@@ -63,17 +69,25 @@ export default function SeacrchMsgesPopup({ msges, query, close, setMsgFocus }) 
           }}
           style={{ background: `${filter === 'M' ? '#4D96DA' : 'transparent'}` }}
         >
-          <img src={Msg} alt="M" className="mr-2 mt-1" />
           Messages
         </button>
         <button
-          className="px-4 py-2 bg-transparent border-[1px] border-[#4D96DA] ml-3 rounded-[5px] flex flex-wrap justify-center outline-none"
+          className="px-4 py-2 bg-transparent border-[1px] border-[#4D96DA] rounded-[5px] flex flex-wrap justify-center content-center outline-none text-sm ml-2"
+          onClick={() => {
+            setFilter('ML');
+          }}
+          style={{ background: `${filter === 'ML' ? '#4D96DA' : 'transparent'}` }}
+        >
+          Mentions
+        </button>
+
+        <button
+          className="px-4 py-2 bg-transparent border-[1px] border-[#4D96DA] ml-3 rounded-[5px] flex flex-wrap justify-center outline-none "
           onClick={() => {
             setFilter('L');
           }}
           style={{ background: `${filter === 'L' ? '#4D96DA' : 'transparent'}` }}
         >
-          <img src={PaperClip} alt="L" className="mr-2" />
           Links
         </button>
         <button
@@ -83,7 +97,6 @@ export default function SeacrchMsgesPopup({ msges, query, close, setMsgFocus }) 
             setFilter('F');
           }}
         >
-          <img src={Link} alt="F" className="mr-2" />
           Files
         </button>
       </div>
@@ -94,7 +107,7 @@ export default function SeacrchMsgesPopup({ msges, query, close, setMsgFocus }) 
             <div className="ml-8">
               <SeachFileElement msg={msg} />
             </div>
-          ) : filter === 'M' || filter === 'L' ? (
+          ) : filter === 'M' || filter === 'L' || filter === 'ML' ? (
             <div
               className="ml-8 mt-3 cursor-pointer"
               onClick={() => {

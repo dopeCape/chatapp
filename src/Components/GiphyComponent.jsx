@@ -4,7 +4,7 @@ import { instance } from '../axios';
 import { search } from '../utils/helper';
 
 import { useChannel } from '@ably-labs/react-hooks';
-export default function GiphyComponen({ user, me, chatId }) {
+export default function GiphyComponen({ user, me, chatId, reply, setReply }) {
   const [sti, setSti] = useState([]);
 
   const [server_channel, _] = useChannel('server', () => { });
@@ -27,6 +27,8 @@ export default function GiphyComponen({ user, me, chatId }) {
     }
   };
   const handleSendSticker = async url => {
+    let isReply = reply ? true : false;
+    let replyedTo = reply ? reply.id : null;
     if (user.groupChat) {
       let to = user.groupChat.groupChatRef.map(x => {
         return x.user.user.id;
@@ -39,7 +41,9 @@ export default function GiphyComponen({ user, me, chatId }) {
           type: 'STICKER',
           from: me.id,
           to: to,
-          chatId: chatId
+          chatId: chatId,
+          isReply,
+          replyedTo
         },
         {
           headers: {
@@ -57,7 +61,9 @@ export default function GiphyComponen({ user, me, chatId }) {
           from: me.id,
           to: user.user.id,
           friendId: user.user.chatWorkSpaces.Friend[0].id,
-          chatId: chatId
+          chatId: chatId,
+          isReply,
+          replyedTo
         },
         {
           headers: {
@@ -66,6 +72,7 @@ export default function GiphyComponen({ user, me, chatId }) {
         }
       );
     }
+    setReply(null);
   };
   const fetchSearch = async query => {
     try {

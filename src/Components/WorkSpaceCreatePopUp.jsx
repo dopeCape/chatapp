@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Spinner from '../Spin-1s-200px.svg';
+
 import ProgressBar from 'progressbar.js';
 import Done from '../check logo.svg';
 import { isValidEmail } from '../utils/helper';
@@ -27,11 +28,45 @@ export default function WorkSpaceCreatePopUp({ close, setSize }) {
   const [searchUsers, setSearchUsers] = useState([]);
   const [selecrtedUsers, setSelecterdUsers] = useState([]);
   const [bar, setBar] = useState(null);
-
   const [fileName, setFileName] = useState(null);
   const addWorkSpace = useUserStore(state => state.addWorkSpace);
   const addChat = useGroupChatStore(state => state.addChat);
   let accessToken = localStorage.getItem('token');
+  // useEffect(() => {
+  //   let bar;
+  //   if (screen === 3) {
+  //     setTimeout(() => {
+  //       bar = new ProgressBar.Circle('#bar', {
+  //         easing: 'easeInOut',
+  //         color: '#228b22',
+  //         strokeWidth: 3,
+  //         trailWidth: 3,
+  //         trailColor: '#fbfbfb'
+  //       });
+  //       bar.animate(0.33);
+  //     }, 10);
+  //
+  //     setProcess('Creating workspce');
+  //     setTimeout(() => {
+  //       bar.animate(0.33);
+  //
+  //       setProcess('Sending Invites');
+  //     }, 1000);
+  //
+  //     setTimeout(() => {
+  //       bar.animate(0.66);
+  //
+  //       setProcess('Adding users');
+  //     }, 2000);
+  //
+  //     setTimeout(() => {
+  //       bar.animate(1);
+  //     }, 3000);
+  //     setTimeout(() => {
+  //       setScreen(4);
+  //     }, 4000);
+  //   }
+  // }, [scree]);
   const handleSend = async () => {
     try {
       setScreen(3);
@@ -53,7 +88,6 @@ export default function WorkSpaceCreatePopUp({ close, setSize }) {
       }, 10);
 
       setProcess('Creating workspace');
-
       let res = await instance.post(
         '/workspace/create',
         {
@@ -71,29 +105,8 @@ export default function WorkSpaceCreatePopUp({ close, setSize }) {
         }
       );
 
-      let workspaceId = res.data.workspace_.id;
-      addWorkSpace(res.data.workspace_);
-      addChat(res.data.groupChat);
-
       bar.animate(0.33);
-      if (usersA.length > 0) {
-        setProcess('Adding users.');
-        await instance.post(
-          '/user/invite',
-          {
-            users: usersA,
-            id: workspaceId
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`
-            }
-          }
-        );
-      }
-
-      bar.animate(0.66);
-
+      let workspaceId = res.data.workspace_.id;
       if (emailIntes.length > 0) {
         setProcess('Sending invtes.');
         await instance.post(
@@ -109,11 +122,29 @@ export default function WorkSpaceCreatePopUp({ close, setSize }) {
           }
         );
       }
+
+      bar.animate(0.66);
+      setProcess('Sending invtes.');
+      setTimeout(async () => {
+        if (usersA.length > 0) {
+          await instance.post(
+            '/user/invite',
+            {
+              users: usersA,
+              id: workspaceId
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
+              }
+            }
+          );
+        }
+      }, 0);
       bar.animate(1);
       setScreen(4);
-      setTimeout(() => {
-        close();
-      }, 2000);
+      addWorkSpace(res.data.workspace_);
+      addChat(res.data.groupChat);
       setBar(bar);
     } catch (error) {
       console.log(error);
@@ -316,7 +347,11 @@ export default function WorkSpaceCreatePopUp({ close, setSize }) {
             </button>
             <input type="file" ref={fileRef} className="hidden" onChange={handleProfileUpload} />
             <div className="text-[#F8F8F8] text-[12px]  mt-3 text-center">
-              {fileName ? <div className="text-red-400">{fileName.split('.')[0]}</div> : 'We recommend 1:1 Ratio'}
+              {fileName ? (
+                <div className="text-red-400">{fileName.split('.')[0].slice(0, 15)}</div>
+              ) : (
+                'We recommend 1:1 Ratio'
+              )}
             </div>
           </div>
           <div className="absolute bottom-[4%] ml-6 text-red-400">{error}</div>
@@ -391,17 +426,25 @@ export default function WorkSpaceCreatePopUp({ close, setSize }) {
           )}
         </div>
       ) : screen === 3 ? (
-        <div className="w-full h-full flex flex-wrap justify-center content-center">
+        <div className="w-full h-full flex flex-col flex-wrap justify-center content-center">
           <div id="bar" className="bar w-[200px] h-[200px]"></div>
-          <div className="mt-8 text-white font-bold">{processs}</div>
+          <div className="mt-8 text-white font-bold text-center">{processs}</div>
         </div>
-      ) : (
+      ) : screen === 4 ? (
         <div className="flex flex-col w-full h-full justify-center content-center  flex-wrap">
-          <img alt="done." className="w-[200px] h-[200px] ml-10 " src={Done} />
+          <img alt="done." className="w-[200px] h-[200px] ml-12 " src={Done} />
           <div className="text-white font-[700] mt-8 text-[24px]">Workspace has been created!</div>
+          <img
+            className="absolute right-[10%] top-[8%] w-[20px] h-[20px] cursor-pointer"
+            src={Close}
+            onClick={() => {
+              close();
+            }}
+            alt="X"
+          />
         </div>
-      )}
-      <div className="absolute bottom-[10%] text-white ml-8">Step {screen} of 4</div>
+      ) : null}
+      <div className="absolute bottom-[10%] text-white  ml-8">Step {screen} of 4</div>
     </div>
   );
 }

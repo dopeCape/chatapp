@@ -13,6 +13,7 @@ import RequestScreen from '../Components/RequestScreen';
 import {
   useChatStore,
   useGroupChatStore,
+  useHistoryStore,
   useMsgesStore,
   useSelectedStore,
   useUserStore,
@@ -31,6 +32,7 @@ export default function MainScreen() {
   const setChat = useChatStore(state => state.setChat);
   const setGroupChat = useGroupChatStore(state => state.setChat);
   const setWorkspce = useWorkSpaceStore(state => state.setWorkSelectdSapce);
+  const setHistory = useHistoryStore(state => state.setHistory);
   const updateUser = useUserStore(state => state.updateUserState);
 
   useEffect(() => {
@@ -66,10 +68,9 @@ export default function MainScreen() {
             return new Date(bLM.createdAt) - new Date(aLM.createdAt);
           });
           setChat(chats);
-          console.log(groupChat);
-
           setGroupChat(groupChat);
           updateUser(user.data.user_data);
+          setHistory(user.data.user_data.chatWorkSpaces.History);
           if (user.data.user_data.chatWorkSpaces.workspaces[0]) {
             setWorkspce(user.data.user_data.chatWorkSpaces.workspaces[0]);
           }

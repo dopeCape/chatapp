@@ -1,26 +1,17 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-
-/* eslint-disable no-unused-vars */
 import styled from '@emotion/styled';
 import Popup from 'reactjs-popup';
-
 import EmojiPicker from 'emoji-picker-react';
+import { userSeach } from '../utils/helper.js';
 import './Styles/loadingBar.css';
 import Search from '../search.svg';
 import Upload from '../heroicons_document-arrow-up.svg';
-
 import { getDownloadURL, getStorage, ref, uploadBytes, uploadBytesResumable } from 'firebase/storage';
-
-// Create a single supabase client for interacting with your database
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useChannel } from '@ably-labs/react-hooks';
 import GroupLogo from '../Frame 98.svg';
-
 import MsgElement from './MsgElement';
 import PaperClip from '../paperclip.svg';
 import Sticker from '../file.svg';
-
 import {
   useChatStore,
   useGroupChatStore,
@@ -38,26 +29,29 @@ import { instance } from '../axios';
 import GroupManagePopup from './GroupManagePopup';
 import SeacrchMsgesPopup from './SearchMsgesPopup';
 import LinkHighlighter from './LinkHeilight';
+import ReplaySection from './ReplySection';
+import { properties } from '../utils/props';
+import { addUserIdToMentions } from '../utils/mention';
 
 export default function ChatSection() {
   const [sticker, setSticker] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ left: 0, top: 0 });
+  const [managePopupOpen, setManagePopu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ left: 0, top: 0, height: 0 });
   const [chat, setChat] = useState([]);
+  const [query, setQuery] = useState('');
+  const [refId, setRefId] = useState(null);
   const [seachOpen, setSeachOpen] = useState(false);
-  const [innerInputValue, setInnerInputValue] = useState('');
   const [serach, setSeach] = useState('');
   const [mentionOpen, setMentionOpen] = useState(false);
-
+  const [reply, setReply] = useState(null);
+  const [manageGroupOpen, setManageGroupOpen] = useState(false);
   const [uploding, setUploding] = useState(false);
   const [msgIndex, setMsgIndex] = useState(null);
-
   const [uplodingPer, setUplodingPer] = useState(0);
   const [chatId, setChatid] = useState(null);
   const [type, setType] = useState('MSG');
-  const [timeOut, addTimeout] = useState(null);
   const [fileUpload, setFileUplaod] = useState(false);
   const [msgFocus, setMsgFoucs] = useState(null);
-
   const [file, setFile] = useState();
   const fileRef = useRef();
   const [emoji, setEmoji] = useState(false);
@@ -66,13 +60,11 @@ export default function ChatSection() {
   let me = useUserStore(state => state.user);
   let user = useSelectedChatStore(state => state.user);
   let chat_ = useChatStore(state => state.chats);
-  const setTyping = useChatStore(state => state.setTyping);
   let group_ = useGroupChatStore(state => state.chats);
   let workspace = useWorkSpaceStore(state => state.workspace);
   const setRead = useChatStore(state => state.setUnReadToZero);
   const setReadGroup = useGroupChatStore(state => state.setUnReadToZero);
   const setSelected = useSelectedStore(state => state.updateSelectedState);
-  const screollRef = useRef();
   const chatRef = useRef();
   const [placeHolder, setPlaceHolder] = useState();
   const groupName = arr => {
@@ -93,6 +85,9 @@ export default function ChatSection() {
     }
     return name;
   };
+  useEffect(() => {
+    setReply(null);
+  }, [user]);
 
   const changeChat = () => {
     if (user && user.groupChat !== undefined) {
@@ -104,6 +99,7 @@ export default function ChatSection() {
             y = x.groupChat.msges;
             setChatid(x.groupChat.id);
             w = x;
+            setRefId(x.id);
           }
         });
       }
@@ -118,6 +114,7 @@ export default function ChatSection() {
             y = x.chat.msges;
             w = x;
             setChatid(x.chatId);
+            setRefId(x.id);
           }
         });
         setChat(y);
@@ -223,7 +220,6 @@ export default function ChatSection() {
     chatRef.current.style.height = 'auto';
     chatRef.current.style.height = `${chatRef.current.scrollHeight}px`;
   };
-
   const SearchPopuu = styled(Popup)`
     &-content {
       border: none;
@@ -237,13 +233,32 @@ export default function ChatSection() {
     adjustInputHeight();
     let parts = chatRef.current.value.split(' ');
     if (parts.at(-1).slice(0, 1) === '@') {
-      setMentionOpen(true);
+      let query = chatRef.current.value.split(' ').at(-1).split('').slice(1).join('');
+      setQuery(query);
+      if (user.groupChat) {
+        console.log(user);
+        let temp_users = user.groupChat.groupChatRef.map(x => {
+          return x.user.user;
+        });
+
+        temp_users.push({ name: 'all', id: '1234565' });
+        temp_users = userSeach(temp_users, query).map(i => {
+          return i.item;
+        });
+        if (temp_users.length > 0) {
+          setMentionOpen(true);
+        } else {
+          setMentionOpen(false);
+        }
+      } else {
+        setMentionOpen(true);
+      }
     } else {
       setMentionOpen(false);
     }
     const { selectionStart } = event.target;
-    const { top, left } = getPositionAtCursor(selectionStart);
-    setMenuPosition({ top, left });
+    const { top, left, height } = getCaretCoordinates(chatRef.current, selectionStart);
+    setMenuPosition({ left, top, height });
   };
 
   const handleFileChange = async e => {
@@ -256,10 +271,8 @@ export default function ChatSection() {
           const type = file.type;
           const storage = getStorage();
           const storageRef = ref(storage, 'files/' + fileExt);
-
           let url;
           let file_type;
-
           if (type === 'video/mp4') {
             file_type = 'VIDEO';
           } else if (type === 'image/gif' || type === 'image/jpeg' || type === 'image/png' || type == 'image/webp') {
@@ -268,7 +281,6 @@ export default function ChatSection() {
             file_type = 'FILE';
           }
           setUploding(true);
-
           const uploadTask = uploadBytesResumable(storageRef, file);
           // Listen for state changes, errors, and completion of the upload.
           uploadTask.on(
@@ -296,6 +308,8 @@ export default function ChatSection() {
               getDownloadURL(uploadTask.snapshot.ref).then(async ur => {
                 setUploding(false);
                 url = ur;
+                let isReply = reply ? true : false;
+                let replyedTo = reply ? reply.id : null;
                 if (user.groupChat) {
                   let to = user.groupChat.groupChatRef.map(x => {
                     return x.user.user.id;
@@ -309,7 +323,9 @@ export default function ChatSection() {
                       from: me.id,
                       to: to,
                       chatId: chatId,
-                      myChatRef: user.id
+                      myChatRef: user.id,
+                      isReply,
+                      replyedTo
                     },
                     {
                       headers: {
@@ -359,6 +375,8 @@ export default function ChatSection() {
                         from: me.id,
                         to: user.user.id,
                         chatId: chatId,
+                        isReply,
+                        replyedTo,
                         friendId: friend[0].id
                       },
                       {
@@ -372,6 +390,8 @@ export default function ChatSection() {
               });
             }
           );
+
+          setReply(null);
         } else {
           alert('file size should be less than 10mb');
         }
@@ -385,39 +405,43 @@ export default function ChatSection() {
   const [server_channel, _] = useChannel('server', () => { });
   let accessToken = localStorage.getItem('token');
 
-  const getPositionAtCursor = position => {
-    const textarea = chatRef.current;
-    const { offsetTop, offsetLeft, offsetHeight, offsetWidth } = textarea;
-    const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight, 10);
+  const isFirefox = typeof window !== 'undefined' && window['mozInnerScreenX'] != null;
 
-    const rows = Math.floor(offsetHeight / lineHeight);
-    const cols = Math.floor(offsetWidth / textarea.cols);
-
-    // Calculate caret position
-    const { top: scrollTop, left: scrollLeft } = textarea;
-    const scrollOffsetX = textarea.scrollLeft;
-    const scrollOffsetY = textarea.scrollTop;
-    let posx = position - cols * (rows - 1);
-    if (posx < 0) {
-      posx = posx * -1;
+  function getCaretCoordinates(element, position) {
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    const style = div.style;
+    const computed = getComputedStyle(element);
+    style.whiteSpace = 'pre-wrap';
+    style.wordWrap = 'break-word';
+    style.position = 'absolute';
+    style.visibility = 'hidden';
+    properties.forEach(prop => {
+      style[prop] = computed[prop];
+    });
+    if (isFirefox) {
+      if (element.scrollHeight > parseInt(computed.height)) style.overflowY = 'scroll';
+    } else {
+      style.overflow = 'hidden';
     }
-
-    const caretX = offsetLeft + posx * (textarea.clientWidth / cols);
-    console.log(caretX, posx, rows);
-
-    const caretY = offsetTop + lineHeight * Math.floor(position / cols) - scrollOffsetY;
-
-    // Calculate menu position
-    const menuTop = caretY + lineHeight;
-    const menuLeft = caretX;
-
-    return { top: menuTop, left: menuLeft };
-  };
-
+    div.textContent = element.value.substring(0, position);
+    const span = document.createElement('span');
+    span.textContent = element.value.substring(position) || '.';
+    div.appendChild(span);
+    const coordinates = {
+      top: span.offsetTop + parseInt(computed['borderTopWidth']),
+      left: span.offsetLeft + parseInt(computed['borderLeftWidth']) + element.offsetLeft,
+      height: span.offsetHeight
+    };
+    div.remove();
+    console.log(coordinates);
+    return coordinates;
+  }
   const handleSendMsg = async e => {
     if (chatRef.current.value.trim() !== '' && e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (chat.length === 0) {
+        let msgToSend = addUserIdToMentions([user], chatRef.current.value, 'C');
         await instance.post(
           '/user/newchat',
           {
@@ -434,7 +458,7 @@ export default function ChatSection() {
               }
             },
             workspace: workspace.id,
-            content: chatRef.current.value,
+            content: msgToSend,
             type: type
           },
           {
@@ -443,24 +467,27 @@ export default function ChatSection() {
             }
           }
         );
-
         chatRef.current.value = '';
-
         setPlaceHolder(`Message ${user.groupChat ? '#' + user.groupChat.name : user.user.name}`);
       } else {
+        let isReply = reply ? true : false;
+        let replyedTo = reply ? reply.id : null;
         if (user.groupChat) {
           let to = user.groupChat.groupChatRef.map(x => {
             return x.user.user.id;
           });
+          let msgToSend = addUserIdToMentions(user.groupChat.groupChatRef, chatRef.current.value, 'G');
           await instance.post(
             '/msges/newgroupmsg',
             {
-              content: chatRef.current.value,
+              content: msgToSend,
               type: type,
               from: me.id,
               to: to,
               chatId: chatId,
-              myChatRef: user.id
+              myChatRef: user.id,
+              isReply,
+              replyedTo
             },
             {
               headers: {
@@ -472,15 +499,19 @@ export default function ChatSection() {
           let friend = user.user.chatWorkSpaces.Friend.filter(x => {
             return x.workspaceId === workspace.id;
           });
+
+          let msgToSend = addUserIdToMentions([user], chatRef.current.value);
           await instance.post(
             '/msges/newmsg',
             {
-              content: chatRef.current.value,
+              content: msgToSend,
               type: type,
               from: me.id,
               to: user.user.id,
               chatId: chatId,
-              friendId: friend[0].id
+              friendId: friend[0].id,
+              isReply,
+              replyedTo
             },
             {
               headers: {
@@ -492,6 +523,7 @@ export default function ChatSection() {
       }
 
       chatRef.current.value = '';
+      setReply(null);
       setPlaceHolder(`Message ${user.groupChat ? '#' + user.groupChat.name : user.user.name}`);
       adjustInputHeight();
     } else if (e.shiftKey && e.key === 'Enter') {
@@ -515,34 +547,37 @@ export default function ChatSection() {
     <div className="w-full h-full flex flex-col bg-[#37393F] ">
       {user.groupChat !== undefined ? (
         <div className="w-[100%] h-[9%]   flex    bg-[#2F3137] border-[2px] border-none border-b-[#353B43] relative">
+          <div
+            className="flex flex-wrap justify-center content-center   pr-2  hover:bg-[#4e5055] h-[50px] mt-3 rounded-[5px] pt-0  cursor-pointer"
+            onClick={() => {
+              setManagePopu(true);
+            }}
+          >
+            {user.groupChat.type === 'CHANNEL' ? (
+              <>
+                <i className="fa-solid fa-hashtag text-white  mt-2 ml-2 mr-1"></i>
+
+                <div className="text-[20px] font-[700]   text-white">{user.groupChat.name}</div>
+              </>
+            ) : (
+              <>
+                <img src={GroupLogo} alt={'Loading...'} className="rounded-[2px] h-[30px] w-[30px]  ml-2 mr-1    " />
+
+                <div className="text-[20px] font-[700]   text-white">{groupName(user.groupChat.groupChatRef)}</div>
+              </>
+            )}
+            <i class="fa-solid fa-chevron-down  ml-1 text-[14px] font-bold cursor-pointer text-[#F8F8F8] mt-2"></i>
+          </div>
           <ManageGroupPopup
             modal
             position="center"
             closeOnDocumentClick={false}
-            trigger={
-              <div className="flex flex-wrap justify-center content-center   pr-2  hover:bg-[#4e5055] h-[50px] mt-3 rounded-[5px] pt-0  cursor-pointer">
-                {user.groupChat.type === 'CHANNEL' ? (
-                  <>
-                    <i className="fa-solid fa-hashtag text-white  mt-2 ml-2 mr-1"></i>
-
-                    <div className="text-[20px] font-[700]   text-white">{user.groupChat.name}</div>
-                  </>
-                ) : (
-                  <>
-                    <img
-                      src={GroupLogo}
-                      alt={'Loading...'}
-                      className="rounded-[2px] h-[30px] w-[30px]  ml-2 mr-1    "
-                    />
-
-                    <div className="text-[20px] font-[700]   text-white">{groupName(user.groupChat.groupChatRef)}</div>
-                  </>
-                )}
-                <i class="fa-solid fa-chevron-down  ml-1 text-[14px] font-bold cursor-pointer text-[#F8F8F8] mt-2"></i>
-              </div>
-            }
+            onClose={() => {
+              setManagePopu(false);
+            }}
+            open={managePopupOpen}
           >
-            {close => <GroupManagePopup close={close} groupChat={user} type={'G'} />}
+            {close => <GroupManagePopup close={close} groupChat={user} type={'G'} id={refId} />}
           </ManageGroupPopup>
           <div className="h-[60%] w-[15%] bg-[#696D78] rounded-[10px] absolute right-[3%] top-[20%] flex p-3">
             <img alt="" src={Search} className="mr-3" />
@@ -563,17 +598,24 @@ export default function ChatSection() {
         <div className="w-[100%] h-[9%]   flex    bg-[#2F3137] border-[2px] border-none border-b-[#353B43] relative">
           <ManageGroupPopup
             modal
+            open={managePopupOpen}
+            onClose={() => {
+              setManagePopu(false);
+            }}
             position="center"
             closeOnDocumentClick={false}
-            trigger={
-              <div className="flex  py-1 px-3 hover:bg-[#4e5055]  flex-wrap justify-center content-center h-[80%] mt-2 rounded-[10px] cursor-pointer">
-                <img src={user.user.profilePic} alt={'Loading...'} className="rounded-[2px] h-[45px] w-[45px]   " />
-                <div className="text-[20px] font-[700] ml-2    text-white">{user.user.name}</div>
-              </div>
-            }
           >
-            {close => <GroupManagePopup close={close} type={'C'} useR={user} chat={chat} />}
+            {close => <GroupManagePopup close={close} type={'C'} useR={user} chat={chat} id={refId} />}
           </ManageGroupPopup>
+          <div
+            className="flex  py-1 px-3 hover:bg-[#4e5055]  flex-wrap justify-center content-center h-[80%] mt-2 rounded-[10px] cursor-pointer"
+            onClick={() => {
+              setManagePopu(true);
+            }}
+          >
+            <img src={user.user.profilePic} alt={'Loading...'} className="rounded-[2px] h-[45px] w-[45px]   " />
+            <div className="text-[20px] font-[700] ml-2    text-white">{user.user.name}</div>
+          </div>
 
           <div className="h-[60%] w-[15%] bg-[#696D78] rounded-[10px] absolute right-[3%] top-[20%] flex p-3">
             <img alt="" src={Search} className="mr-3" value={serach} />
@@ -634,9 +676,11 @@ export default function ChatSection() {
                 <MsgElement
                   msg={msg}
                   chatId={chatId}
+                  msgFocus={setMsgFoucs}
                   from={me.id}
                   clicked={msgIndex === msg.id}
                   type={user.groupChat ? 'group' : 'user'}
+                  replySetter={setReply}
                   to={
                     user.groupChat
                       ? user.groupChat.groupChatRef.map(x => {
@@ -652,9 +696,7 @@ export default function ChatSection() {
               {index === 0 || new Date(chat.at(index - 1).createdAt).setHours(0, 0, 0, 0) < pDate ? (
                 <div className="flex">
                   <div className="w-[48%] left-[2%]  border-[1px] h-0 relative top-3 border-[#515357]"></div>
-
                   <div className="text-[#fbfbfb] ml-3 mr-5 text-center w-[140px]   ">Today</div>
-
                   <div className="w-[45%] right-[3%]  border-[1px] h-0  relative top-3 border-[#515357]"></div>
                 </div>
               ) : null}
@@ -674,7 +716,9 @@ export default function ChatSection() {
                   msg={msg}
                   chatId={chatId}
                   clicked={msgIndex === msg.id}
+                  replySetter={setReply}
                   from={me.id}
+                  msgFocus={setMsgFoucs}
                   type={user.groupChat ? 'group' : 'user'}
                   to={
                     user.groupChat
@@ -689,7 +733,6 @@ export default function ChatSection() {
           );
         })}
       </div>
-
       {/* {chat.length > 0 ? <div ref={scrollRef}></div> : null} */}
       {emoji ? (
         <div
@@ -725,28 +768,38 @@ export default function ChatSection() {
         </div>
       ) : null}
       {mentionOpen ? (
+        // bottom-[10%]  left-[32.25%]
         <div
-          className="w-[400px] max-h-[250px]  absolute "
+          className="w-[400px] max-h-[250px]  absolute   "
           style={{
-            position: 'absolute',
-            top: menuPosition.top,
-            left: menuPosition.left
+            top: `${680 + menuPosition.top - menuPosition.height}px`,
+            left: `${menuPosition.left}px`
           }}
         >
-          <MentionMenu users={user.user} type={'C'} />
+          <MentionMenu
+            users={user.groupChat ? user.groupChat.groupChatRef : user.user}
+            query={query}
+            type={user.groupChat ? 'G' : 'C'}
+            setMention={setMentionOpen}
+            inputRef={chatRef}
+          />
         </div>
       ) : null}
-      <div className="p-4  pl-5 bg-[#40444A] rounded-[10px] w-[95%] ml-6 mt-2  max-h-[30%]  flex justify-end    h-auto   ">
+      {reply ? (
+        <div className="w-[95%] ml-6 mt-5 rounded-[5px] border-[#616061] border-[1px] border-b-[0px] rounded-b-[0px] py-2  ">
+          <ReplaySection msg={reply} replySetter={setReply} sendMsg={handleSendMsg} />
+        </div>
+      ) : null}
+      <div className="p-4  pl-5 bg-[#40444A] rounded-[10px] w-[95%] ml-6   max-h-[30%]  flex justify-end mb-3     h-auto   ">
         <textarea
           ref={chatRef}
           className="bg-[#40444A]  outline-none border-none w-[90%] max-w-[90%]  text-white h-[20px]   max-h-[200px]   flex-grow  overflow-y-scroll "
           onInput={handleInputChange}
           placeholder={`Message ${user.groupChat ? '#' + user.groupChat.name : user.user.name}`}
+          value={chatRef.current?.value}
           onKeyDown={handleSendMsg}
           tabIndex={0}
-        >
-          {innerInputValue}
-        </textarea>
+        ></textarea>
         <img
           alt="Link"
           src={PaperClip}
@@ -810,7 +863,14 @@ export default function ChatSection() {
         ></img>
         {sticker ? (
           <div className="absolute w-[300px] h-[250px]  top-[57%]">
-            <GiphyComponen user={user} me={me} chatId={chatId} type={chat.length === 0 ? 'new' : null} />
+            <GiphyComponen
+              user={user}
+              me={me}
+              chatId={chatId}
+              type={chat.length === 0 ? 'new' : null}
+              reply={reply}
+              setReply={setReply}
+            />
           </div>
         ) : null}
       </div>

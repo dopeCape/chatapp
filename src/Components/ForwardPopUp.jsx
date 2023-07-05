@@ -8,6 +8,8 @@ import { FileIcon, defaultStyles } from 'react-file-icon';
 import Cross from '../ph_x-bold.svg';
 import ReactPlayer from 'react-player';
 import { useUserStore, useWorkSpaceStore } from '../Stores/MainStore';
+import LinkHighlighter from './LinkHeilight';
+import { addUserIdToMentions, removeBracketsAndIDs } from '../utils/mention';
 export default function ForwardPopUp({ close, msg, time }) {
   const me = useUserStore(state => state.user);
   const workspace = useWorkSpaceStore(state => state.workspace);
@@ -67,10 +69,11 @@ export default function ForwardPopUp({ close, msg, time }) {
       let to = selected.groupChat.groupChatRef.map(x => {
         return x.user.user.id;
       });
+      let value = addUserIdToMentions(selected.groupChat.groupChatRef, removeBracketsAndIDs(msg.content), 'G');
       await instance.post(
         '/msges/newgroupmsg',
         {
-          content: msg.content,
+          content: value,
           type: msg.type,
           from: me.id,
           url: url,
@@ -88,10 +91,15 @@ export default function ForwardPopUp({ close, msg, time }) {
       let friend = selected.friend.user.chatWorkSpaces.Friend.filter(x => {
         return x.workspaceId === workspace.id;
       });
+      let x = removeBracketsAndIDs(msg.content);
+
+      console.log(x);
+
+      let value = addUserIdToMentions([selected.friend], removeBracketsAndIDs(msg.content), 'C');
       await instance.post(
         '/msges/newmsg',
         {
-          content: msg.content,
+          content: value,
           type: msg.type,
           url: url,
           from: me.id,
@@ -219,7 +227,12 @@ export default function ForwardPopUp({ close, msg, time }) {
               <div className="text-[#B4B4B4] text-[14px]  ml-2 mt-1">{time}</div>
             </div>
             {msg.type === 'MSG' ? (
-              <div className="ml-2 ">{msg.content.length > 150 ? msg.content.slice(0, 150) + '...' : msg.content}</div>
+              <div className="ml-2  ">
+                <LinkHighlighter
+                  text_={msg.content.length > 150 ? msg.content.slice(0, 150) + '...' : msg.content}
+                  currentUser={me.id}
+                />
+              </div>
             ) : msg.type === 'IMG' || msg.type === 'STICKER' ? (
               <img alt={msg.content} src={msg.url} className="ml-2 h-[250px] w-[400px] object-fill  " />
             ) : msg.type === 'VIDEO' ? (

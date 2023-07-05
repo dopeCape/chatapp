@@ -164,6 +164,17 @@ const useChatStore = create(
         chats: chats
       }));
     },
+    setMute: (w, i) => {
+      let chats = get().chats;
+      chats.forEach(x => {
+        if (x.id === w) {
+          x.muted = i;
+        }
+      });
+      set(() => ({
+        chats: chats
+      }));
+    },
     editMsg: (w, i, msg) => {
       let chats = get().chats;
 
@@ -332,6 +343,17 @@ const useGroupChatStore = create(
         chats: chats
       }));
     },
+    setMute: (w, i) => {
+      let chats = get().chats;
+      chats.forEach(x => {
+        if (x.id === w) {
+          x.muted = i;
+        }
+      });
+      set(() => ({
+        chats: chats
+      }));
+    },
     setUnReadToZero: w => {
       let chats = get().chats;
       chats.forEach(x => {
@@ -358,6 +380,23 @@ const useSelectedChatStore = create(
     }
   }))
 );
+const useHistoryStore = create(
+  devtools((set, get) => ({
+    historys: [],
+    setHistory: historys => set({ historys: historys }),
+    addNewEntry: (w, i) => {
+      let his = get().historys;
+      his.forEach(x => {
+        if (x.id === w) {
+          x.entrys.push(i);
+        }
+      });
+      set(() => ({
+        historys: his
+      }));
+    }
+  }))
+);
 
 export {
   useMsgesStore,
@@ -366,5 +405,6 @@ export {
   useSelectedChatStore,
   useChatStore,
   useWorkSpaceStore,
-  useGroupChatStore
+  useGroupChatStore,
+  useHistoryStore
 };

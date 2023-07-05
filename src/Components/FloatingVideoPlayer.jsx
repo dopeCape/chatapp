@@ -4,7 +4,7 @@ import Cross from '../ph_x-bold.svg';
 
 const FloatingVideoPlayer = ({ videoUrl, close }) => {
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-opacity-[10%] bg-black z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-opacity-[60%] bg-black z-[100]">
       <div className="relative w-[36.3%] h-[40%] bg-white shadow-md rounded-lg">
         <img
           src={Cross}

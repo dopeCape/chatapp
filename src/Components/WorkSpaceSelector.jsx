@@ -104,7 +104,7 @@ export default function WorkSpaceSelector({ workspace, selected }) {
 
   return (
     <div
-      className="w-full h-full flex   rounded-[10px]  content-center flex-wrap cursor-pointer relative border-[3px] border-[#202226]  p-1 max-h-full max-w-full overflow-hidden"
+      className="w-[70px] h-[70px] flex   rounded-[10px]  content-center flex-wrap cursor-pointer relative border-[3px] border-[#202226]  p-1 max-h-full max-w-full overflow-hidden"
       style={{ borderColor: `${selected ? 'white' : ''}` }}
       onClick={handleSetWorkSpace}
     >

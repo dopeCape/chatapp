@@ -16,13 +16,19 @@ import SeachFileElement from './SeacrhFileElement';
 import { fileSeacrh } from '../utils/helper';
 import DeleteUserPopup from './DeleteUserPopup';
 import AddUsersToGroupPopup from './AddUsersToGroupPopup';
+import { useStore } from 'zustand';
 
-export default function GroupManagePopup({ close, groupChat, type, useR, chat }) {
+export default function GroupManagePopup({ close, groupChat, type, useR, chat, id }) {
   const [selected, setSelected] = useState('A');
   const [allFiles, setallFiles] = useState([]);
+  const [mute, setMute] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [files, setFiles] = useState([]);
   const [search, setSearch] = useState('');
+  const setChatMute = useChatStore(state => state.setMute);
+
+  const setGroupChatMute = useGroupChatStore(state => state.setMute);
+
   let me = useUserStore(state => state.user);
   let user = useSelectedChatStore(state => state.user);
   let chat_ = useChatStore(state => state.chats);
@@ -36,6 +42,12 @@ export default function GroupManagePopup({ close, groupChat, type, useR, chat })
           files.push(msg);
         }
       });
+      group_.forEach(x => {
+        if (x.id === id) {
+          console.log(x.muted);
+          setMute(x.muted);
+        }
+      });
       setFiles(files);
       setallFiles(files);
     } else {
@@ -45,6 +57,12 @@ export default function GroupManagePopup({ close, groupChat, type, useR, chat })
         }
         setFiles(files);
         setallFiles(files);
+      });
+      chat_.forEach(x => {
+        if (x.id === id) {
+          console.log(x.muted);
+          setMute(x.muted);
+        }
       });
     }
   }, [user, group_, chat_, type]);
@@ -72,6 +90,49 @@ export default function GroupManagePopup({ close, groupChat, type, useR, chat })
       );
 
       setDeleting(false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const handleMute = async () => {
+    try {
+      if (type === 'C') {
+        let friendId = id;
+        let mute_ = !mute;
+        await instance.post(
+          '/user/mute',
+          {
+            friendId,
+            mute: mute_
+          },
+
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          }
+        );
+        setChatMute(id, mute_);
+        setMute(mute_);
+      } else {
+        let groupChatRefId = id;
+        let mute_ = !mute;
+        await instance.post(
+          '/gchat/mute',
+          {
+            groupChatRefId,
+            mute: mute_
+          },
+
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          }
+        );
+        setGroupChatMute(id, mute_);
+        setMute(mute_);
+      }
     } catch (error) {
       console.log(error);
     }
@@ -189,9 +250,18 @@ export default function GroupManagePopup({ close, groupChat, type, useR, chat })
             </div>
           )}
           <div className="flex w-[90%] ml-8 mt-5  flex-wrap justify-between">
-            <button className="bg-[#40434B] py-4 w-[48%] flex flex-wrap justify-center  rounded-[10px] outline-none">
-              <img className="w-[20px] h-[20px] " src={Mute} alt="X" />
-              <div className="text-white tex-[18px] font-[700] ml-2">Mute notification</div>
+            <button
+              className="bg-[#40434B] py-4 w-[48%] flex flex-wrap justify-center  rounded-[10px] outline-none"
+              onClick={() => {
+                handleMute();
+              }}
+            >
+              {mute ? (
+                <i class="fa-solid fa-volume-high text-white mt-1"></i>
+              ) : (
+                <img className="w-[20px] h-[20px] " src={Mute} alt="X" />
+              )}
+              <div className="text-white tex-[18px] font-[700] ml-2">{mute ? 'Unmute' : 'Mute'} notification</div>
             </button>
             {type === 'G' ? (
               <button

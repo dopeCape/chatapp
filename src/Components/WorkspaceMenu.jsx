@@ -6,9 +6,16 @@ import Popup from 'reactjs-popup';
 import InviteToWorkcpace from './InviteToWorkcpacePopup';
 import EditWorkSpace from './EditWorkSpace';
 import NewGroup from './NewGroup';
+import History from './History';
 export default function WorkSpaceMenu() {
   const me = useUserStore(state => state.user);
   const workspace = useWorkSpaceStore(state => state.workspace);
+  const [editWorkspaceOpen, setEditWorkspaceOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const [addUserToWorkspaceOpen, setAddUserToWorkspaceOpen] = useState(false);
+
+  const [createChannelOpen, SetCreateChannelOpen] = useState(false);
   const EditWorkspcePopup = styled(Popup)`
     &-content {
       border: none;
@@ -44,22 +51,40 @@ export default function WorkSpaceMenu() {
         <div className="ml-6 text-[20px] font-[700]"> {workspace.name}</div>
       </div>
       <div className="w-[80%]  h-0 border-[1px] border-[#616061] ml-8  mt-5  "></div>
+      <div
+        className="  pl-8   cursor-pointer hover:bg-[#4D96DA]  py-3 mt-1  "
+        onClick={() => {
+          setAddUserToWorkspaceOpen(true);
+        }}
+      >
+        Invite people to {workspace.name}
+      </div>
       <AddUserToWorkspacePopup
         modal
+        open={addUserToWorkspaceOpen}
+        onClose={() => {
+          setAddUserToWorkspaceOpen(false);
+        }}
         position="center center"
         closeOnDocumentClick={false}
         closeOnEscape={false}
-        trigger={
-          <div className="  pl-8   cursor-pointer hover:bg-[#4D96DA]  py-3 mt-1  ">
-            Invite people to {workspace.name}
-          </div>
-        }
       >
         {close => <InviteToWorkcpace close={close} />}
       </AddUserToWorkspacePopup>
+      <div
+        className=" py-3 pl-8   cursor-pointer hover:bg-[#4D96DA]"
+        onClick={() => {
+          SetCreateChannelOpen(true);
+        }}
+      >
+        Create Channel
+      </div>
 
       <CreateChannelPopup
-        trigger={<div className=" py-3 pl-8   cursor-pointer hover:bg-[#4D96DA]">Create Channel</div>}
+        open={createChannelOpen}
+        onClose={() => {
+          SetCreateChannelOpen(false);
+        }}
         modal
         position="center center"
         closeOnEscape={false}
@@ -67,17 +92,41 @@ export default function WorkSpaceMenu() {
       >
         {close => <NewGroup close={close} type={'Channel'} />}
       </CreateChannelPopup>
-      <div className=" py-3 pl-8   cursor-pointer hover:bg-[#4D96DA]">History</div>
+      <div
+        className=" py-3 pl-8   cursor-pointer hover:bg-[#4D96DA]"
+        onClick={() => {
+          setHistoryOpen(!historyOpen);
+        }}
+      >
+        History
+      </div>
+      {historyOpen ? (
+        <div className="absolute h-[380px] w-[350px] left-[100%] top-[55%]">
+          <History workspaceId={workspace.id} />
+        </div>
+      ) : null}
+      <EditWorkspcePopup
+        open={editWorkspaceOpen}
+        onClose={() => {
+          setEditWorkspaceOpen(false);
+        }}
+        modal
+        position="center center"
+        closeOnEscape={false}
+        closeOnDocumentClick={false}
+      >
+        {close => <EditWorkSpace close={close} />}
+      </EditWorkspcePopup>
+
       {me.admin ? (
-        <EditWorkspcePopup
-          modal
-          position="center center"
-          closeOnEscape={false}
-          closeOnDocumentClick={false}
-          trigger={<div className=" py-3 pl-8   cursor-pointer hover:bg-[#4D96DA]">Edit Workspace Profile</div>}
+        <div
+          className=" py-3 pl-8   cursor-pointer hover:bg-[#4D96DA]"
+          onClick={() => {
+            setEditWorkspaceOpen(true);
+          }}
         >
-          {close => <EditWorkSpace close={close} />}
-        </EditWorkspcePopup>
+          Edit Workspace Profile
+        </div>
       ) : null}
 
       <div className="w-[80%]  h-0 border-[1px] border-[#616061] ml-8  mt-auto "></div>

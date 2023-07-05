@@ -69,6 +69,7 @@ export default function ChatSelector() {
 
   let friendRef = useRef();
   const groupNameRef = useRef('');
+  const [workspceOpen, setWorkSpaceOpen] = useState(false);
   const [groupError, setGroupError] = useState(null);
   const accessToken = localStorage.getItem('token');
   const [creating, setCreatin] = useState(false);
@@ -118,23 +119,27 @@ export default function ChatSelector() {
         </div>
       ) : (
         <div className="w-full h-full flex  flex-col  bg-[#2f3137]   ">
-          <WorkspacePopup
-            position="bottom left"
-            arrow={false}
-            nested
-            trigger={
-              <div className="   h-[9%] w-full flex    ml-1  ">
-                <div className="text-[24px] text-[#F8F8F8] mt-3 ml-3 font-bold  cursor-pointer  ">
-                  {selectedWorkspace.name}
-                </div>
-                <i class="fa-solid fa-chevron-down mt-6 m-2 font-bold cursor-pointer text-[#F8F8F8] text-[14px]"></i>
-              </div>
-            }
-          >
-            <div className="w-[360px] h-full">
+          <div className="   h-[9%] w-full flex    ml-1  ">
+            <div
+              className="text-[24px] text-[#F8F8F8] mt-3 ml-3 font-bold  cursor-pointer  "
+              onClick={() => {
+                setWorkSpaceOpen(!workspceOpen);
+              }}
+            >
+              {selectedWorkspace.name}
+            </div>
+            <i
+              class="fa-solid fa-chevron-down mt-6 m-2 font-bold cursor-pointer text-[#F8F8F8] text-[14px]"
+              onClick={() => {
+                setWorkSpaceOpen(!workspceOpen);
+              }}
+            ></i>
+          </div>
+          {workspceOpen ? (
+            <div className="w-[360px] h-[360px] absolute  z-[50] top-[8%]">
               <WorkSpaceMenu />
             </div>
-          </WorkspacePopup>
+          ) : null}
           <div className="w-full border-[1px] border-[#353B43] h-0 "></div>
 
           <div className="max-h-[33%] w-full ">
