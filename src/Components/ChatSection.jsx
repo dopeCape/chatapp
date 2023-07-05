@@ -524,6 +524,8 @@ export default function ChatSection() {
 
       chatRef.current.value = '';
       setReply(null);
+      setMentionOpen(false);
+      setQuery('');
       setPlaceHolder(`Message ${user.groupChat ? '#' + user.groupChat.name : user.user.name}`);
       adjustInputHeight();
     } else if (e.shiftKey && e.key === 'Enter') {
@@ -790,10 +792,11 @@ export default function ChatSection() {
           <ReplaySection msg={reply} replySetter={setReply} sendMsg={handleSendMsg} />
         </div>
       ) : null}
-      <div className="p-4  pl-5 bg-[#40444A] rounded-[10px] w-[95%] ml-6   max-h-[30%]  flex justify-end mb-3     h-auto   ">
+      <div className="p-4  pl-5 bg-[#40444A] rounded-[10px] w-[95%] ml-6   max-h-[30%]  flex justify-end mb-3     mt-4 ">
         <textarea
           ref={chatRef}
-          className="bg-[#40444A]  outline-none border-none w-[90%] max-w-[90%]  text-white h-[20px]   max-h-[200px]   flex-grow  overflow-y-scroll "
+          className="bg-[#40444A]  outline-none border-none w-[90%] max-w-[90%]  text-white h-[20px]   max-h-[200px]   flex-grow  overflow-y-scroll  "
+          rows="1"
           onInput={handleInputChange}
           placeholder={`Message ${user.groupChat ? '#' + user.groupChat.name : user.user.name}`}
           value={chatRef.current?.value}
@@ -803,7 +806,7 @@ export default function ChatSection() {
         <img
           alt="Link"
           src={PaperClip}
-          class="text-white text-[22px] w-[30px] h-[30px]  cursor-pointer mr-3"
+          class="text-white text-[22px] w-[25px] h-[25px]  cursor-pointer mr-3"
           onClick={() => {
             setEmoji(false);
             setSticker(false);
@@ -814,7 +817,7 @@ export default function ChatSection() {
           <div className="absolute w-[230px] h-[150px] flex flex-col bg-[#585B66] top-[69%] right-[8%] text-white rounded-[5px]">
             <div className="mt-5 ml-4 font-[700]">Upload from computer</div>
             <div className="flex  ">
-              <img alt="Document" src={Upload} className="w-[30px] h-[30px] mr-3 mb-5 ml-4 mt-4 cursor-pointer" />
+              <img alt="Document" src={Upload} className="w-[25px] h-[25px] mr-3 mb-5 ml-4 mt-4 cursor-pointer" />
               <div
                 className="mt-4 cursor-pointer "
                 onClick={() => {
@@ -826,7 +829,7 @@ export default function ChatSection() {
               </div>
             </div>
             <div className="flex ">
-              <img alt="Document" src={Phote} className="w-[30px] h-[30px] mr-3 ml-4 cursor-pointer" />
+              <img alt="Document" src={Phote} className="w-[25px] h-[25px] mr-3 ml-4 cursor-pointer" />
               <div
                 className="cursor-pointer"
                 onClick={() => {
@@ -844,7 +847,7 @@ export default function ChatSection() {
         <img
           src={Smile}
           alt="Emoji"
-          class=" dark:text-white text-[22px] cursor-pointer mr-3 w-[30px] h-[30px]"
+          class=" dark:text-white text-[22px] cursor-pointer mr-3 w-[25px] h-[25px]"
           onClick={() => {
             setSticker(false);
             setFileUplaod(false);
@@ -854,7 +857,7 @@ export default function ChatSection() {
         <img
           src={Sticker}
           alt="Sticker"
-          className="text-white text-[22px]  cursor-pointer mr-3 w-[30px] h-[30px] "
+          className="text-white text-[22px]  cursor-pointer mr-3 w-[25px] h-[25px] "
           onClick={() => {
             setFileUplaod(false);
             setEmoji(false);

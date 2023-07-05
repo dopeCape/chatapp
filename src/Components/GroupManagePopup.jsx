@@ -311,7 +311,10 @@ export default function GroupManagePopup({ close, groupChat, type, useR, chat, i
               </button>
             )}
           </div>
-          <div className="bg-[#40434B] rounded-[10px] ml-8 mt-5 w-[90%] h-[320px] relative  ">
+          <div
+            className={`bg-[#40434B] rounded-[10px] ml-8 mt-5 w-[90%] h-[320px]
+               relative  `}
+          >
             <div className="text-white ml-5 mt-5">Files</div>
             <div className="flex bg-[#696D78] p-2 absolute right-[5%] top-[5%] rounded-[10px] w-[140px] ">
               <img alt="" src={Search} className=" ml-1" />
@@ -329,7 +332,9 @@ export default function GroupManagePopup({ close, groupChat, type, useR, chat, i
                 }}
               />
             </div>
-            <div className=" w-[90%] max-h-[80%] ml-5 mt-5 flex flex-col overflow-y-scroll">
+            <div
+              className={` w-[90%] max-h-[${type === 'G' ? '80' : '80'}%]  ml-5 mt-5 flex flex-col overflow-y-scroll`}
+            >
               {files?.map(fl => {
                 return <SeachFileElement msg={fl} />;
               })}

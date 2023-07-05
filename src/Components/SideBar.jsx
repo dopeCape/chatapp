@@ -26,7 +26,6 @@ export default function SideBar({ setter, type }) {
   const [createWorkspacePopUpOpen, setCreateWorkspcePopUpOpen] = useState(false);
   const [clicked, setClicked] = useState(0);
   const [worspacePopUpSize, setWorspacePupUpSize] = useState(600);
-
   function array_move(arr, old_index, new_index) {
     if (new_index >= arr.length) {
       var k = new_index - arr.length + 1;

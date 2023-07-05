@@ -1,5 +1,4 @@
 function addUserIdToMentions(users, text, type) {
-  console.log(type);
   if (type === 'G') {
     users = users.map(x => {
       return x.user;
@@ -48,8 +47,9 @@ function findMentionedMessages(messages, userId) {
         return mentionMatchResult ? mentionMatchResult[2].split(',') : [];
       })
       .flat();
+    let x = mentionUserIds.includes(userId) || mentionUserIds.includes('1234565');
 
-    return mentionUserIds.includes(userId) || mentionUserIds.includes('1234565');
+    return x;
   });
 }
 

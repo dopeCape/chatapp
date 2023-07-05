@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import Cross from '../ph_x-bold.svg';
-import PaperClip from '../paperclip.svg';
-import Link from '../file.svg';
-import Msg from '../Vector(1).svg';
 import SeachFileElement from './SeacrhFileElement';
 import SeachMsgElement from './SeachMsgElement';
 import { fileSeacrh } from '../utils/helper';
@@ -20,7 +17,7 @@ export default function SeacrchMsgesPopup({ msges, query, close, setMsgFocus }) 
     let msges_ = [];
     msges.forEach(x => {
       if (filter === 'F') {
-        if (x.type === 'VIDEO' || x.type === 'IMG' || x.type === 'STICKER') {
+        if (x.type === 'VIDEO' || x.type === 'IMG' || x.type === 'STICKER' || x.type === 'FILE') {
           msges_.push(x);
         }
       } else if (filter === 'M' || filter === 'L' || filter === 'ML') {
@@ -33,7 +30,6 @@ export default function SeacrchMsgesPopup({ msges, query, close, setMsgFocus }) 
             }
           } else if (filter === 'ML') {
             let x = findMentionedMessages(msges, me.id);
-            console.log(x);
             msges_ = x;
           }
         }

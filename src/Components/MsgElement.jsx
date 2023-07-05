@@ -237,7 +237,7 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked, reply
         )
       ) : null}
       {clicked && msg.type !== 'CMD' && msg.from.id === me.id && msg.type === 'MSG' ? (
-        <div className="z-10 w-[200px] h-[40px] bg-[#585B66] rounded-[5px] flex left-[80%]  absolute flex-wrap justify-evenly content-center ">
+        <div className="z-10 w-[200px] h-[40px] bg-[#585B66] rounded-[5px] flex left-[81%]  absolute flex-wrap justify-evenly content-center ">
           <div
             className="flex  h-full  w-[25%] justify-evenly  content-center flex-wrap  hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer"
             onClick={() => {
@@ -357,7 +357,7 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked, reply
           </DeletePopup>
         </div>
       ) : clicked && msg.type !== 'CMD' ? (
-        <div className="z-10 w-[100px] h-[40px] bg-[#585B66] rounded-[5px] flex  left-[91.8%]  absolute flex-wrap justify-evenly content-center">
+        <div className="z-10 w-[100px] h-[40px] bg-[#585B66] rounded-[5px] flex  left-[88.8%]  absolute flex-wrap justify-evenly content-center">
           <ForwardPopup
             position={'center center'}
             closeOnDocumentClick={false}
