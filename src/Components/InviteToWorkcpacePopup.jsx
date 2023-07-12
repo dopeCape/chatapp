@@ -101,7 +101,7 @@ export default function InviteToWorkcpace({ close }) {
       <img
         alt="x"
         src={Close}
-        className="absolute w-[18px] h-[18px] top-[14%] right-[10%] cursor-pointer"
+        className="absolute w-[18px] h-[18px] top-[8%] right-[5%] cursor-pointer"
         onClick={() => {
           close();
         }}
@@ -171,7 +171,11 @@ export default function InviteToWorkcpace({ close }) {
 
       <button
         className=" py-2  bg-[#4D96DA] absolute bottom-[10%] right-[5%] rounded-[5px] w-[100px] "
-        onClick={haneleSend}
+        onClick={() => {
+          if (!loading) {
+            haneleSend();
+          }
+        }}
       >
         {!loading ? (
           'Send'

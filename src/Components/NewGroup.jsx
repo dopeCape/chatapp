@@ -77,9 +77,9 @@ export default function NewGroup({ close, type }) {
       />
       {screen === 1 && type !== 'Group' ? (
         <div>
-          <div className="test-[18px] font-[700] ml-8 mt-8">Name</div>
-          <div className="mt-5 ml-8 text-red-400">Name Of channel cannot be General</div>
-          <div className="flex w-[90%] bg-[#585B66] relative rounded-[5px] ml-8 m-1">
+          <div className="test-[18px] font-[700] ml-8 mt-5">Name</div>
+          <div className="mt-3 ml-8 text-red-400">Name Of channel cannot be General</div>
+          <div className="flex w-[90%] bg-[#585B66] relative rounded-[5px] ml-8 ">
             <i class="fa-solid fa-hashtag text-white relative top-[39%] left-[5%] text-[13px] mt-5 "></i>
             <input
               className=" w-[100%]  p-4  rounded-[5px] ml-8 outline-none bg-transparent pl-1"
@@ -90,7 +90,6 @@ export default function NewGroup({ close, type }) {
               }}
             />
           </div>
-
           <div className="text-[14px] font-light text-[#B4B4B4] ml-8 mt-3  w-[90%]">
             Channels are where conversations happen around a topic. Use a name that is easy to find and understand.
           </div>
@@ -108,7 +107,7 @@ export default function NewGroup({ close, type }) {
               }}
               checked={chelcked === 'PUBLIC' ? true : false}
               name="default-radio"
-              class="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 mt-1"
+              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 mt-1"
             />
             <div className="ml-2">
               Public - anyone in <span className="font-[700]">{name}</span>
@@ -124,7 +123,7 @@ export default function NewGroup({ close, type }) {
               }}
               checked={chelcked === 'PRIVATE' ? true : false}
               name="default-radio"
-              class="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 mt-1"
+              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 mt-1"
             />
             <div className="ml-2">
               Private - Just memebers of <span className="font-[700]">{name}</span>
@@ -132,7 +131,6 @@ export default function NewGroup({ close, type }) {
           </div>
         </div>
       ) : null}
-
       {type !== 'Group' ? <div className="absolute ml-8 bottom-[10%]">Step {screen} of 3</div> : null}
       <button
         className="absolute bg-[#4D96DA] px-8   py-2 rounded-[5px] bottom-[10%] right-[5%] disabled:bg-blue-300 disabled:cursor-not-allowed flex flex-wrap justify-center content-center w-[100px]"
@@ -147,7 +145,9 @@ export default function NewGroup({ close, type }) {
             setScreen(3);
           }
           if (screen === 3 || type === 'Group') {
-            handleCreateGroup();
+            if (!creating) {
+              handleCreateGroup();
+            }
           }
         }}
       >
@@ -210,7 +210,6 @@ export default function NewGroup({ close, type }) {
               })}
             </div>
           ) : null}
-
           <div class="flex flex-wrap ml-8 mt-8 w-[85%] max-h-[40%]  ">
             {selecrtedUsers.map((user, index) => {
               return user.user.id !== me.id ? (

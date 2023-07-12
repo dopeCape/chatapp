@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
+
+import { instance } from '../axios';
 import Close from '../ph_x-bold.svg';
 import { useChatStore, useSelectedChatStore, useUserStore, useWorkSpaceStore } from '../Stores/MainStore';
-import { simpleSearch } from '../utils/helper';
+import Spinner from '../Spin-1s-200px.svg';
 
 export default function NewChat({ close }) {
   let me = useUserStore(state => state.user);
+  let workspace = useWorkSpaceStore(state => state.workspace);
+  const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [seUser, setSeUser] = useState(null);
   const selectedWorkspace = useWorkSpaceStore(state => state.workspace);
   const setSelectedChat = useSelectedChatStore(state => state.updateChatState);
   const chatStore = useChatStore(state => state.chats);
   const [error, setError] = useState(null);
-
   const searchUsers = e => {
     try {
       if (e.target.value !== '') {
@@ -38,6 +41,40 @@ export default function NewChat({ close }) {
       console.log(error);
     }
   };
+  const accessToken = localStorage.getItem('token');
+  const createNewChat = async () => {
+    try {
+      setLoading(true);
+      await instance.post(
+        '/user/newchat',
+        {
+          user1: {
+            id: me.chatWorkSpaces.id,
+            user: {
+              id: me.id
+            }
+          },
+          user2: {
+            id: seUser.id,
+            user: {
+              id: seUser.user.id
+            }
+          },
+          workspace: workspace.id
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        }
+      );
+
+      setLoading(false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const setChat = user => {
     try {
       setSeUser(user);
@@ -46,12 +83,14 @@ export default function NewChat({ close }) {
       console.log(error);
     }
   };
-  const createChat = () => {
+  const createChat = async () => {
     try {
       if (seUser) {
-        setSelectedChat(seUser);
-
-        close();
+        await createNewChat();
+        setTimeout(() => {
+          setSelectedChat(seUser);
+          close();
+        }, 10);
       } else {
         setError('*Select a user');
       }
@@ -98,10 +137,15 @@ export default function NewChat({ close }) {
         />
       )}
       {users.length !== 0 ? (
-        <div className="w-[90%] max-h-[140px]  ml-6 mt-1 sticky   bg-[#585B66] rounded-[5px] overflow-scroll z-10">
+        <div className="w-[90%] max-h-[140px]  ml-6 mt-1 sticky   bg-[#585B66] rounded-[5px] overflow-scroll z-10 ">
           {users.map(x => {
             return (
-              <div className="w-full flex mt-5  z-10 ">
+              <div
+                className="w-full flex mt-5  z-10  hover:bg-[#4D96DA] py-2 "
+                onClick={() => {
+                  setChat(x);
+                }}
+              >
                 <img
                   alt={x.user.name}
                   src={x.user.profilePic}
@@ -125,10 +169,10 @@ export default function NewChat({ close }) {
       ) : null}
 
       <button
-        className="bg-[#4D96DA] px-6 py-1 rounded-[5px] w-[80px] mt-8 absolute right-[8%] bottom-[10%] text-white font-[700] z-[1]"
+        className="bg-[#4D96DA] px-6 py-1 rounded-[5px] w-[80px] mt-8 absolute right-[8%] bottom-[10%] text-white font-[700] z-[1] flex flex-wrap justify-center content-center"
         onClick={createChat}
       >
-        Chat
+        {loading ? <img className="w-[25px] h-[25px] " alt="Loading.." src={Spinner} /> : 'Chat'}
       </button>
       <div className="text-red-400 absolute bottom-[10%] ml-8">{error}</div>
     </div>

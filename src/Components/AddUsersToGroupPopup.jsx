@@ -60,7 +60,7 @@ export default function AddUsersToGroupPopup({ close, groupChat }) {
       <img
         src={Cross}
         alt="X"
-        className="absolute w-[20px] h-[20px] right-[5%] top-[10%]"
+        className="absolute w-[20px] h-[20px] right-[5%] top-[10%] cursor-pointer"
         onClick={() => {
           close();
         }}
@@ -121,13 +121,13 @@ export default function AddUsersToGroupPopup({ close, groupChat }) {
         </div>
       ) : null}
       <button
-        className="w-[100px] bg-[#4D96DA] py-2 outline-none absolute right-[5%] bottom-[5%] rounded-[5px] flex flex-wrap justify-center content-center disabled:bg-[#40434B]"
+        className="w-[100px] bg-[#4D96DA] py-2 outline-none absolute right-[5%] bottom-[10%] rounded-[5px] flex flex-wrap justify-center content-center disabled:bg-[#40434B]"
         onClick={() => {
           handleAddUser();
         }}
         disabled={selecrtedUsers.length === 0}
       >
-        {loading ? <img alt="Loading.." src={Spinner} className="w-[25px] h-[25px]" /> : 'Add +'}
+        {loading ? <img alt="Loading.." src={Spinner} className="w-[25px] h-[25px]" /> : 'Add'}
       </button>
     </div>
   );

@@ -7,22 +7,21 @@ import { FileIcon, defaultStyles } from 'react-file-icon';
 
 import Cross from '../ph_x-bold.svg';
 import ReactPlayer from 'react-player';
-import { useUserStore, useWorkSpaceStore } from '../Stores/MainStore';
+import { useGroupChatStore, useUserStore, useWorkSpaceStore } from '../Stores/MainStore';
 import LinkHighlighter from './LinkHeilight';
 import { addUserIdToMentions, removeBracketsAndIDs } from '../utils/mention';
 export default function ForwardPopUp({ close, msg, time }) {
   const me = useUserStore(state => state.user);
   const workspace = useWorkSpaceStore(state => state.workspace);
+  const groupChats = useGroupChatStore(state => state.chats);
   const [error, setError] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [renderList, setRenderList] = useState([]);
-
   const [foceusd, setFoucsed] = useState(false);
-
   const [selected, setSilicted] = useState(null);
   useEffect(() => {
     let chat = [];
-    me.chatWorkSpaces.groupChatRef.forEach(x => {
+    groupChats.forEach(x => {
       if (x.groupChat.workspaceId === workspace.id) {
         chat.push(x);
       }
@@ -64,7 +63,6 @@ export default function ForwardPopUp({ close, msg, time }) {
     if (msg.type === 'STICKER') {
       url = msg.url;
     }
-
     if (selected.groupChat) {
       let to = selected.groupChat.groupChatRef.map(x => {
         return x.user.user.id;
@@ -77,6 +75,7 @@ export default function ForwardPopUp({ close, msg, time }) {
           type: msg.type,
           from: me.id,
           url: url,
+          forwarded: true,
           to: to,
           chatId: selected.groupChat.id,
           myChatRef: selected.id
@@ -93,8 +92,6 @@ export default function ForwardPopUp({ close, msg, time }) {
       });
       let x = removeBracketsAndIDs(msg.content);
 
-      console.log(x);
-
       let value = addUserIdToMentions([selected.friend], removeBracketsAndIDs(msg.content), 'C');
       await instance.post(
         '/msges/newmsg',
@@ -103,6 +100,7 @@ export default function ForwardPopUp({ close, msg, time }) {
           type: msg.type,
           url: url,
           from: me.id,
+          forwarded: true,
           to: selected.friend.user.id,
           chatId: selected.chatId,
           friendId: friend[0].id
@@ -123,14 +121,14 @@ export default function ForwardPopUp({ close, msg, time }) {
       <img
         alt="X"
         src={Cross}
-        className=" cursor-pointer absolute right-[10%] top-[10%] w-[20px] h-[20px]"
+        className=" cursor-pointer absolute right-[5%] top-[8%] w-[20px] h-[20px]"
         onClick={() => {
           close();
         }}
       />
       {selected ? (
         selected.groupChat ? (
-          <div className="ml-8 py-1 text-white bg-[#4D96DA] rounded-[3px] flex px-1 flex-wrap justify-start content-center mt-5  w-auto max-w-[200px] relative">
+          <div className="ml-8 py-1 text-white bg-[#4D96DA] rounded-[3px] flex px-1 flex-wrap justify-start content-center mt-5  w-auto max-w-[200px] relative ">
             <i class="fa-solid fa-hashtag text-white text-[15px] mt-1 "></i>
             <div className="ml-2">{selected.groupChat.name}</div>
             <img
@@ -186,7 +184,7 @@ export default function ForwardPopUp({ close, msg, time }) {
                 : msg.type === 'FILE'
                   ? '200px'
                   : null
-            }] sticky bg-[#585B66] ml-5 bottom-[1%] rounded-[5px] z-10 pb-4`}
+            }] sticky bg-[#585B66] ml-5 bottom-[1%] rounded-[5px] z-10 pb-4  overflow-scroll`}
         >
           {renderList.map(chats => {
             return chats.groupChat ? (
@@ -234,10 +232,10 @@ export default function ForwardPopUp({ close, msg, time }) {
                 />
               </div>
             ) : msg.type === 'IMG' || msg.type === 'STICKER' ? (
-              <img alt={msg.content} src={msg.url} className="ml-2 h-[250px] w-[400px] object-fill  " />
+              <img alt={msg.content} src={msg.url} className="ml-2 h-[200px] w-[400px] object-fill  " />
             ) : msg.type === 'VIDEO' ? (
               <div className="relative bottom-[3%] ml-2">
-                <ReactPlayer url={msg.url} controls width="400px" height="250px" />
+                <ReactPlayer url={msg.url} controls width="360px" height="220px" />
               </div>
             ) : (
               <div className="flex ">

@@ -1,4 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { createRef, useEffect, useRef, useState } from 'react';
+
+import { saveAs } from 'file-saver';
 import LinkHighlighter from './LinkHeilight';
 import ImgsViewer from 'react-images-viewer';
 import { FileIcon, defaultStyles } from 'react-file-icon';
@@ -22,6 +24,7 @@ import ForwardPopUp from './ForwardPopUp';
 import FloatingVideoPlayer from './FloatingVideoPlayer';
 import ReplyPopupC from './ReplyPopup';
 import { addUserIdToMentions } from '../utils/mention';
+import { getDownloadURL, ref, getStorage } from 'firebase/storage';
 
 export default function MsgElement({ msg, chatId, from, to, type, clicked, replySetter, msgFocus }) {
   let user = useSelectedChatStore(state => state.user);
@@ -45,27 +48,14 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked, reply
     let hours = currentDate.getHours();
     const minutes = currentDate.getMinutes();
     const amOrPm = hours >= 12 ? 'PM' : 'AM';
-
     // Convert to 12-hour format
     hours = hours % 12 || 12;
     const formattedTime = `${hours}:${minutes} ${amOrPm}`;
     setTime(formattedTime);
   }, []);
 
-  function downloadFile(url, filename) {
-    fetch(url)
-      .then(response => response.blob())
-      .then(blob => {
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = filename;
-        link.click();
-        URL.revokeObjectURL(blobUrl);
-      })
-      .catch(error => {
-        console.error('Error:', error);
-      });
+  async function downloadFile(url, filename) {
+    saveAs(url, filename);
   }
 
   function getContentHeight(content) {
@@ -237,7 +227,7 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked, reply
         )
       ) : null}
       {clicked && msg.type !== 'CMD' && msg.from.id === me.id && msg.type === 'MSG' ? (
-        <div className="z-10 w-[200px] h-[40px] bg-[#585B66] rounded-[5px] flex left-[81%]  absolute flex-wrap justify-evenly content-center ">
+        <div className="z-10 w-[200px] h-[40px] bg-[#585B66] rounded-[5px] flex left-[82.5%]  absolute flex-wrap justify-evenly content-center ">
           <div
             className="flex  h-full  w-[25%] justify-evenly  content-center flex-wrap  hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer"
             onClick={() => {
@@ -254,20 +244,21 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked, reply
           >
             <img alt="Forward" src={Forward} className="w-[25px] h-[25px] cursor-pointer  " />
           </div>
-
-          <ForwardPopup
-            open={editMsgOpen}
-            onClose={() => {
-              setEditMsgOpen(false);
-            }}
-            position={'center center'}
-            closeOnDocumentClick={false}
-            modal
-            closeOnEscape={false}
-            height="330px"
-          >
-            {close => <ForwardPopUp close={close} msg={msg} time={time} />}
-          </ForwardPopup>
+          {!msg.isReply ? (
+            <ForwardPopup
+              open={editMsgOpen}
+              onClose={() => {
+                setEditMsgOpen(false);
+              }}
+              position={'center center'}
+              closeOnDocumentClick={false}
+              modal
+              closeOnEscape={false}
+              height="330px"
+            >
+              {close => <ForwardPopUp close={close} msg={msg} time={time} />}
+            </ForwardPopup>
+          ) : null}
 
           <div className="flex  h-full   w-[25%] flex-wrap justify-evenly  content-center hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer">
             <img
@@ -303,7 +294,7 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked, reply
           </DeletePopup>
         </div>
       ) : clicked && msg.type !== 'CMD' && msg.from.id === me.id ? (
-        <div className="z-10 w-[150px] h-[40px] bg-[#585B66] rounded-[5px] flex  left-[85%]  absolute flex-wrap justify-evenly content-center">
+        <div className="z-10 w-[150px] h-[40px] bg-[#585B66] rounded-[5px] flex  left-[86%]  absolute flex-wrap justify-evenly content-center">
           <div
             className="flex  h-full  w-[33%] justify-evenly  content-center flex-wrap  hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer"
             onClick={() => {
@@ -320,19 +311,21 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked, reply
           >
             <img alt="Forward" src={Forward} className="w-[25px] h-[25px] cursor-pointer  " />
           </div>
-          <ForwardPopup
-            position={'center center'}
-            closeOnDocumentClick={false}
-            open={editMsgOpen}
-            onClose={() => {
-              setEditMsgOpen(false);
-            }}
-            modal
-            closeOnEscape={false}
-            height={`${msg.type === 'FILE' ? '350px' : '550px'}`}
-          >
-            {close => <ForwardPopUp close={close} msg={msg} time={time} />}
-          </ForwardPopup>
+          {!msg.isReply ? (
+            <ForwardPopup
+              position={'center center'}
+              closeOnDocumentClick={false}
+              open={editMsgOpen}
+              onClose={() => {
+                setEditMsgOpen(false);
+              }}
+              modal
+              closeOnEscape={false}
+              height={`${msg.type === 'FILE' ? '350px' : '500px'}`}
+            >
+              {close => <ForwardPopUp close={close} msg={msg} time={time} />}
+            </ForwardPopup>
+          ) : null}
           <div
             className="flex   h-full  w-[33%] justify-evenly  content-center flex-wrap hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer"
             onClick={() => {
@@ -357,28 +350,30 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked, reply
           </DeletePopup>
         </div>
       ) : clicked && msg.type !== 'CMD' ? (
-        <div className="z-10 w-[100px] h-[40px] bg-[#585B66] rounded-[5px] flex  left-[88.8%]  absolute flex-wrap justify-evenly content-center">
-          <ForwardPopup
-            position={'center center'}
-            closeOnDocumentClick={false}
-            modal
-            closeOnEscape={false}
-            height={`${msg.type === 'MSG'
-                ? '330px'
-                : msg.type === 'VIDEO' || msg.type === 'IMG'
-                  ? '550px'
-                  : msg.type === 'FILE'
-                    ? '350px'
-                    : null
-              }`}
-            trigger={
-              <div className="flex  h-full  w-[50%] justify-evenly  content-center flex-wrap  hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer">
-                <img alt="Forward" src={Forward} className="w-[25px] h-[25px] cursor-pointer  " />
-              </div>
-            }
-          >
-            {close => <ForwardPopUp close={close} msg={msg} time={time} />}
-          </ForwardPopup>
+        <div className="z-10 w-[100px] h-[40px] bg-[#585B66] rounded-[5px] flex  left-[90%]  absolute flex-wrap justify-evenly content-center">
+          {!msg.isReply ? (
+            <ForwardPopup
+              position={'center center'}
+              closeOnDocumentClick={false}
+              modal
+              closeOnEscape={false}
+              height={`${msg.type === 'MSG'
+                  ? '330px'
+                  : msg.type === 'VIDEO' || msg.type === 'IMG'
+                    ? '500px'
+                    : msg.type === 'FILE'
+                      ? '350px'
+                      : null
+                }`}
+              trigger={
+                <div className="flex  h-full  w-[50%] justify-evenly  content-center flex-wrap  hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer">
+                  <img alt="Forward" src={Forward} className="w-[25px] h-[25px] cursor-pointer  " />
+                </div>
+              }
+            >
+              {close => <ForwardPopUp close={close} msg={msg} time={time} />}
+            </ForwardPopup>
+          ) : null}
           <div
             className="flex  h-full  w-[50%] justify-evenly  content-center flex-wrap  hover:bg-[#B4B4B4] rounded-[5px] cursor-pointer"
             onClick={() => {
@@ -403,26 +398,53 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked, reply
               <div className="flex ">
                 <div className="text-[16px] font-[700] text-white">{msg.from.id === me.id ? 'Me' : msg.from.name}</div>
                 <div className="text-[13px] font-[400] text-[#B4B4B4] ml-1 ">{time}</div>
+                {msg.forwarded ? <div className="text-[#B4B4B4] text-[13px] ml-1">(forwarded)</div> : null}
               </div>
               {msg.type === 'MSG' ? (
                 editng && msg.from.id === me.id ? (
-                  <div className=" flex bg-[#40434B] relative">
-                    <textarea
-                      className="outline-none w-[75%] max-w-[75%]  bg-[#40434B] text-white   rounded-[5px] px-1 py-3 resize-none  "
-                      ref={chatRef}
-                      style={{
-                        height: `${getContentHeight(msg.content) + 50}px `,
-                        maxHeight: `${getContentHeight(msg.content) + 200}px`
-                      }}
-                      onChange={e => {
-                        chatRef.current.style.height = 'auto';
-                        chatRef.current.style.height = `${chatRef.current.scrollHeight}px`;
-                        setEditedValue(e.target.value);
-                      }}
-                      value={editedValue}
-                    // value={editedValue}
-                    />
-
+                  <div className=" flex bg-[#2B2D35] relative px-5 pt-4 flex-col">
+                    <div className="flex flex-col w-[100%] bg-[#40444A] rounded-[10px] pl-2">
+                      <textarea
+                        className="outline-none w-[100%] max-w-[75%]  bg-[#40444A] text-white   rounded-[5px] px-1 py-3 resize-none  "
+                        ref={chatRef}
+                        style={{
+                          height: `${getContentHeight(msg.content) + 50}px `,
+                          maxHeight: `${getContentHeight(msg.content) + 200}px`
+                        }}
+                        onChange={e => {
+                          chatRef.current.style.height = 'auto';
+                          chatRef.current.style.height = `${chatRef.current.scrollHeight}px`;
+                          setEditedValue(e.target.value);
+                        }}
+                        value={editedValue}
+                      // value={editedValue}
+                      />
+                      <img
+                        src={Smile}
+                        alt="Emoji"
+                        class=" dark:text-white text-[22px] cursor-pointer  w-[20px] h-[20px] ml-2 mb-2 "
+                        onClick={() => {
+                          setEmoji(!emoji);
+                        }}
+                      ></img>
+                    </div>
+                    <div className="flex  mt-8 mb-3 relative left-[82%] w-[220px]">
+                      <button
+                        class=" dark:text-white  cursor-pointer   h-[40px]  border-[1px] rounded-[5px] w-[100px] py-1 border-[#4D96DA] "
+                        onClick={() => {
+                          setEmoji(false);
+                          setEditin(false);
+                        }}
+                      >
+                        Cancle
+                      </button>
+                      <button
+                        className=" border-none outline-none h-[40px] w-[100px] py-1 bg-[#4D96DA] text-white rounded-[5px]  ml-5 "
+                        onClick={handleEdit}
+                      >
+                        Save
+                      </button>
+                    </div>
                     {emoji && clicked ? (
                       <div
                         className="absolute right-[14%] bottom-[20%]
@@ -439,29 +461,6 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked, reply
                         />{' '}
                       </div>
                     ) : null}
-                    <img
-                      src={Smile}
-                      alt="Emoji"
-                      class=" dark:text-white text-[22px] cursor-pointer  w-[20px] h-[20px] absolute bottom-[5%] left-[75%]"
-                      onClick={() => {
-                        setEmoji(!emoji);
-                      }}
-                    ></img>
-                    <button
-                      className="text-[#b5b5b5] border-none outline-none absolute bottom-[4%] left-[71%] p-0 hover:text-blue-500"
-                      onClick={handleEdit}
-                    >
-                      Save
-                    </button>
-                    <img
-                      src={Cross}
-                      alt="Close"
-                      class=" dark:text-white text-[22px] cursor-pointer ml-5 w-[20px] h-[20px] absolute bottom-[5%] left-[76%]"
-                      onClick={() => {
-                        setEmoji(false);
-                        setEditin(false);
-                      }}
-                    ></img>
                   </div>
                 ) : (
                   <div
@@ -540,7 +539,6 @@ export default function MsgElement({ msg, chatId, from, to, type, clicked, reply
                         downloadFile(msg.url, msg.content);
                       }}
                     />
-
                     <img alt="forward" src={Forward} className="w-[18px] h-[18px] ml-2 mt-1 cursor-auto" />
                   </div>
                   <div

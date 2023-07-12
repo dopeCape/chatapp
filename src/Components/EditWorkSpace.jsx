@@ -109,7 +109,7 @@ export default function EditWorkSpace({ close }) {
       <div className="flex flex-col w-full h-full ">
         <div className="text-white font-[700] ml-8 mt-8 text-[18px]">Workspace name</div>
         <input
-          className="bg-[#40434B] p-4 text-white rounded-[5px]  w-[55%] mt-4 ml-8 outline-none"
+          className="bg-[#40434B] p-4 text-white rounded-[5px]  w-[60%] mt-4 ml-8 outline-none"
           placeholder="ex: AMX Consulting"
           value={name}
           onChange={e => {
@@ -121,10 +121,10 @@ export default function EditWorkSpace({ close }) {
           }}
         />
 
-        <div className="absolute top-[25%]  text-white left-[54%] ">{name.length}/15</div>
+        <div className="absolute top-[25%]  text-white left-[59%] ">{name.length}/15</div>
         <div className="text-white font-[700] ml-8 mt-8 text-[18px]">Topic</div>
         <input
-          className="bg-[#40434B] p-4 text-white rounded-[5px]  w-[55%] mt-4 ml-8 outline-none"
+          className="bg-[#40434B] p-4 text-white rounded-[5px]  w-[60%] mt-4 ml-8 outline-none"
           placeholder="ex: AMX Consulting Team Collaboration"
           value={topic}
           onChange={e => {
@@ -135,8 +135,7 @@ export default function EditWorkSpace({ close }) {
             }
           }}
         />
-
-        <div className="absolute top-[50%]  text-white left-[54%] ">{topic.length}/40</div>
+        <div className="absolute top-[49%]  text-white left-[59%] ">{topic.length}/40</div>
         <div className="text-white font-[700] ml-8 mt-12 text-[18px]">Description</div>
         <textarea
           className="bg-[#40434B] p-4 text-white rounded-[5px]  w-[90%] mt-5 ml-8 resize-none outline-none"
@@ -151,8 +150,8 @@ export default function EditWorkSpace({ close }) {
           }}
         />
 
-        <div className="absolute top-[83%]  text-white right-[6%] ">{dis.length}/80</div>
-        <div className="absolute flex flex-col right-[10%] top-[8%]">
+        <div className="absolute top-[80%]  text-white right-[6%] ">{dis.length}/80</div>
+        <div className="absolute flex flex-col right-[5%] top-[8%]">
           <div className="text-white font-[700]  text-[18px] mb-2">Profile photo</div>
           <div className="bg-[#585B66] w-[190px] h-[190px] rounded-[5px] flex flex-warp justify-center content-center">
             <img alt="Workspace" src={url} className="object-cover" />
@@ -173,7 +172,7 @@ export default function EditWorkSpace({ close }) {
         <div className="absolute bottom-[5%] ml-6 text-red-400">{error}</div>
       </div>
       <button
-        className="bg-transparent w-[100px] border-[2px] border-[#4D96DA] rounded-[5px] absolute bottom-[4%] right-[28%] py-2  text-white outline-none"
+        className="bg-transparent w-[100px] border-[2px] border-[#4D96DA] rounded-[5px] absolute bottom-[5%] right-[23%] py-2  text-white outline-none"
         onClick={async () => {
           if (url !== workspace.profilePic) {
             await axios.delete(url);
@@ -185,8 +184,12 @@ export default function EditWorkSpace({ close }) {
       </button>
 
       <button
-        className=" w-[100px]  bg-[#4D96DA] rounded-[5px] absolute bottom-[4%] right-[10%] py-2  text-white outline-none"
-        onClick={handelSave}
+        className=" w-[100px]  bg-[#4D96DA] rounded-[5px] absolute bottom-[5%] right-[5%] py-2  text-white outline-none border-[1px] border-transparent "
+        onClick={() => {
+          if (!sending) {
+            handelSave();
+          }
+        }}
         disabled={sending}
       >
         {sending ? (

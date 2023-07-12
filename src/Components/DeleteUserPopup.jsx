@@ -25,7 +25,9 @@ export default function DeleteUserPopup({ close, user, groupChat }) {
           msg: msgs,
           userxid: user.user.user.id,
           groupId: groupChat.groupChat.id,
-          groupChatRefId: groupChatRefId[0].id
+          groupChatRefId: groupChatRefId[0].id,
+          name: user.user.user.name,
+          groupName: groupChat.groupChat.name
         },
         {
           headers: {
@@ -40,12 +42,12 @@ export default function DeleteUserPopup({ close, user, groupChat }) {
   };
   return (
     <div className="w-full h-full bg-[#37393F] relative rounded-[10px]">
-      <div className="font-[700] text-center text-white relative top-[20%] ">Remove {user.user.user.name}?</div>
-      <div className="text-[14px] text-center  relative top-[25%] text-[#B4B4B4]">
+      <div className="font-[700] text-center text-white relative top-[10%] ">Remove {user.user.user.name}?</div>
+      <div className="text-[14px] text-center  relative top-[15%] text-[#B4B4B4]">
         {user.user.user.name} will no longer be a member of marketing
       </div>
       <button
-        className="absolute w-[100px] py-2 bg-transparent border-[1px] border-[#4D96DA] rounded-[5px] bottom-[5%] right-[55%] text-white"
+        className="absolute w-[100px] py-2 bg-transparent border-[1px] border-[#4D96DA] rounded-[5px] bottom-[10%] right-[55%] text-white"
         onClick={() => {
           close();
         }}
@@ -54,7 +56,7 @@ export default function DeleteUserPopup({ close, user, groupChat }) {
       </button>
 
       <button
-        className="absolute w-[100px] py-2   bg-[#DA4D4D] rounded-[5px] bottom-[5%] right-[20%] text-white flex flex-wrap justify-center content-center"
+        className="absolute w-[100px] py-2   bg-[#DA4D4D] rounded-[5px] bottom-[10%] right-[20%] text-white flex flex-wrap justify-center content-center border-[1px] border-transparent"
         onClick={() => {
           handleRemove();
         }}

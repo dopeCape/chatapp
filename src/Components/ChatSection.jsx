@@ -32,10 +32,12 @@ import LinkHighlighter from './LinkHeilight';
 import ReplaySection from './ReplySection';
 import { properties } from '../utils/props';
 import { addUserIdToMentions } from '../utils/mention';
+import FileUplaodConfirmPopup from './FileUploadConfirmPopup.jsx';
 
 export default function ChatSection() {
   const [sticker, setSticker] = useState(false);
   const [managePopupOpen, setManagePopu] = useState(false);
+  const [uplodedUrl, setUplodedUrl] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ left: 0, top: 0, height: 0 });
   const [chat, setChat] = useState([]);
   const [query, setQuery] = useState('');
@@ -54,9 +56,9 @@ export default function ChatSection() {
   const [msgFocus, setMsgFoucs] = useState(null);
   const [file, setFile] = useState();
   const fileRef = useRef();
+  const [friendId, setFriendId] = useState(null);
   const [emoji, setEmoji] = useState(false);
   const chatContainerRef = useRef(null);
-
   let me = useUserStore(state => state.user);
   let user = useSelectedChatStore(state => state.user);
   let chat_ = useChatStore(state => state.chats);
@@ -87,6 +89,9 @@ export default function ChatSection() {
   };
   useEffect(() => {
     setReply(null);
+    if (chatRef.current) {
+      chatRef.current.value = '';
+    }
   }, [user]);
 
   const changeChat = () => {
@@ -114,6 +119,7 @@ export default function ChatSection() {
             y = x.chat.msges;
             w = x;
             setChatid(x.chatId);
+            setFriendId(x.id);
             setRefId(x.id);
           }
         });
@@ -261,141 +267,137 @@ export default function ChatSection() {
     setMenuPosition({ left, top, height });
   };
 
-  const handleFileChange = async e => {
+  const handleUploadFile = async (url, filename, filetype) => {
     try {
-      if (e.target.files) {
-        if (e.target.files[0].size < 10000000) {
-          setFile(e.target.files[0]);
-          const file = e.target.files[0];
-          const fileExt = file.name;
-          const type = file.type;
-          const storage = getStorage();
-          const storageRef = ref(storage, 'files/' + fileExt);
-          let url;
-          let file_type;
-          if (type === 'video/mp4') {
-            file_type = 'VIDEO';
-          } else if (type === 'image/gif' || type === 'image/jpeg' || type === 'image/png' || type == 'image/webp') {
-            file_type = 'IMG';
-          } else {
-            file_type = 'FILE';
+      let isReply = reply ? true : false;
+      let replyedTo = reply ? reply.id : null;
+      if (user.groupChat) {
+        let to = user.groupChat.groupChatRef.map(x => {
+          return x.user.user.id;
+        });
+        await instance.post(
+          '/msges/newgroupmsg',
+          {
+            content: filename,
+            url: url,
+            type: filetype,
+            from: me.id,
+            to: to,
+            chatId: chatId,
+            myChatRef: user.id,
+            isReply,
+            replyedTo
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
           }
-          setUploding(true);
-          const uploadTask = uploadBytesResumable(storageRef, file);
-          // Listen for state changes, errors, and completion of the upload.
-          uploadTask.on(
-            'state_changed',
-            snapshot => {
-              // Observe state change events such as progress, pause, and resume
-              // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
-              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              setUplodingPer(Math.trunc(progress));
-              switch (snapshot.state) {
-                case 'paused':
-                  console.log('Upload is paused');
-                  break;
-                case 'running':
-                  console.log('Upload is running');
-                  break;
-              }
-            },
-            error => {
-              // Handle unsuccessful uploads
-            },
-            () => {
-              // Handle successful uploads on complete
-              // For instance, get the download URL: https://firebasestorage.googleapis.com/...
-              getDownloadURL(uploadTask.snapshot.ref).then(async ur => {
-                setUploding(false);
-                url = ur;
-                let isReply = reply ? true : false;
-                let replyedTo = reply ? reply.id : null;
-                if (user.groupChat) {
-                  let to = user.groupChat.groupChatRef.map(x => {
-                    return x.user.user.id;
-                  });
-                  await instance.post(
-                    '/msges/newgroupmsg',
-                    {
-                      content: fileExt,
-                      url: url,
-                      type: file_type,
-                      from: me.id,
-                      to: to,
-                      chatId: chatId,
-                      myChatRef: user.id,
-                      isReply,
-                      replyedTo
-                    },
-                    {
-                      headers: {
-                        Authorization: `Bearer ${accessToken}`
-                      }
-                    }
-                  );
-                } else {
-                  if (chat.length === 0) {
-                    await instance.post(
-                      '/user/newchat',
-                      {
-                        user1: {
-                          id: me.chatWorkSpaces.id,
-                          user: {
-                            id: me.id
-                          }
-                        },
-                        user2: {
-                          id: user.id,
-                          user: {
-                            id: user.user.id
-                          }
-                        },
-                        workspace: workspace.id,
-                        content: fileExt,
-                        url: url,
-                        type: file_type
-                      },
-                      {
-                        headers: {
-                          Authorization: `Bearer ${accessToken}`
-                        }
-                      }
-                    );
-                  } else {
-                    let friend = user.user.chatWorkSpaces.Friend.filter(x => {
-                      return x.workspaceId === workspace.id;
-                    });
-
-                    await instance.post(
-                      '/msges/newmsg',
-                      {
-                        content: fileExt,
-                        url: url,
-                        type: file_type,
-                        from: me.id,
-                        to: user.user.id,
-                        chatId: chatId,
-                        isReply,
-                        replyedTo,
-                        friendId: friend[0].id
-                      },
-                      {
-                        headers: {
-                          Authorization: `Bearer ${accessToken}`
-                        }
-                      }
-                    );
-                  }
+        );
+      } else {
+        if (chat.length === 0) {
+          await instance.post(
+            '/user/newchat',
+            {
+              user1: {
+                id: me.chatWorkSpaces.id,
+                user: {
+                  id: me.id
                 }
-              });
+              },
+              user2: {
+                id: user.id,
+                user: {
+                  id: user.user.id
+                }
+              },
+              workspace: workspace.id,
+              content: filename,
+              url: url,
+              type: filetype
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
+              }
             }
           );
-
-          setReply(null);
         } else {
-          alert('file size should be less than 10mb');
+          let friend = user.user.chatWorkSpaces.Friend.filter(x => {
+            return x.workspaceId === workspace.id;
+          });
+
+          await instance.post(
+            '/msges/newmsg',
+            {
+              content: filename,
+              url: url,
+              type: filetype,
+              from: me.id,
+              to: user.user.id,
+              chatId: chatId,
+              isReply,
+              replyedTo,
+              friendId: friend[0].id
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
+              }
+            }
+          );
         }
       }
+      setReply(null);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const handleFileChange = async file => {
+    try {
+      const fileExt = file.name;
+      const type = file.type;
+      const storage = getStorage();
+      const storageRef = ref(storage, 'files/' + fileExt);
+      let url;
+      let file_type;
+      if (type === 'video/mp4') {
+        file_type = 'VIDEO';
+      } else if (type === 'image/gif' || type === 'image/jpeg' || type === 'image/png' || type == 'image/webp') {
+        file_type = 'IMG';
+      } else {
+        file_type = 'FILE';
+      }
+      const uploadTask = uploadBytesResumable(storageRef, file);
+      // Listen for state changes, errors, and completion of the upload.
+      uploadTask.on(
+        'state_changed',
+        snapshot => {
+          // Observe state change events such as progress, pause, and resume
+          // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUplodingPer(Math.trunc(progress));
+          switch (snapshot.state) {
+            case 'paused':
+              console.log('Upload is paused');
+              break;
+            case 'running':
+              console.log('Upload is running');
+              break;
+          }
+        },
+        error => {
+          // Handle unsuccessful uploads
+        },
+        () => {
+          // Handle successful uploads on complete
+          // For instance, get the download URL: https://firebasestorage.googleapis.com/...
+          getDownloadURL(uploadTask.snapshot.ref).then(async ur => {
+            setUplodedUrl(ur);
+            setUploding(false);
+          });
+        }
+      );
     } catch (error) {
       console.log(error);
     }
@@ -531,6 +533,16 @@ export default function ChatSection() {
     } else if (e.shiftKey && e.key === 'Enter') {
     }
   };
+  const FileUPloadPopup = styled(Popup)`
+    &-content {
+      border: none;
+      height: 450px;
+      padding: 0;
+      width: 300px;
+      border-radius: 10px;
+    }
+  `;
+
   const ManageGroupPopup = styled(Popup)`
     &-content {
       border: none;
@@ -579,7 +591,7 @@ export default function ChatSection() {
             }}
             open={managePopupOpen}
           >
-            {close => <GroupManagePopup close={close} groupChat={user} type={'G'} id={refId} />}
+            {close => <GroupManagePopup close={close} groupChat={user} type={'G'} id={refId} chatId={chatId} />}
           </ManageGroupPopup>
           <div className="h-[60%] w-[15%] bg-[#696D78] rounded-[10px] absolute right-[3%] top-[20%] flex p-3">
             <img alt="" src={Search} className="mr-3" />
@@ -607,7 +619,17 @@ export default function ChatSection() {
             position="center"
             closeOnDocumentClick={false}
           >
-            {close => <GroupManagePopup close={close} type={'C'} useR={user} chat={chat} id={refId} />}
+            {close => (
+              <GroupManagePopup
+                close={close}
+                type={'C'}
+                useR={user}
+                chat={chat}
+                id={refId}
+                chatId={chatId}
+                friendId={friendId}
+              />
+            )}
           </ManageGroupPopup>
           <div
             className="flex  py-1 px-3 hover:bg-[#4e5055]  flex-wrap justify-center content-center h-[80%] mt-2 rounded-[10px] cursor-pointer"
@@ -810,37 +832,24 @@ export default function ChatSection() {
           onClick={() => {
             setEmoji(false);
             setSticker(false);
-            setFileUplaod(!fileUpload);
+            setFileUplaod(true);
           }}
         ></img>
         {fileUpload ? (
-          <div className="absolute w-[230px] h-[150px] flex flex-col bg-[#585B66] top-[69%] right-[8%] text-white rounded-[5px]">
-            <div className="mt-5 ml-4 font-[700]">Upload from computer</div>
-            <div className="flex  ">
-              <img alt="Document" src={Upload} className="w-[25px] h-[25px] mr-3 mb-5 ml-4 mt-4 cursor-pointer" />
-              <div
-                className="mt-4 cursor-pointer "
-                onClick={() => {
-                  fileRef.current.click();
-                  setFileUplaod(false);
-                }}
-              >
-                Upload document
-              </div>
+          <>
+            <div className="fixed w-screen h-screen bg-black bg-opacity-40 top-0 left-0 "></div>
+            <div className="w-[450px] h-[300px] absolute  bottom-[10%] z-[50]">
+              <FileUplaodConfirmPopup
+                fileFunc={handleFileChange}
+                uploadFunc={handleUploadFile}
+                perSetter={setUplodingPer}
+                per={uplodingPer}
+                close={setFileUplaod}
+                uplodedUrl={uplodedUrl}
+                setUplodedUrl={setUplodedUrl}
+              />
             </div>
-            <div className="flex ">
-              <img alt="Document" src={Phote} className="w-[25px] h-[25px] mr-3 ml-4 cursor-pointer" />
-              <div
-                className="cursor-pointer"
-                onClick={() => {
-                  fileRef.current.click();
-                  setFileUplaod(false);
-                }}
-              >
-                Upload photo or video
-              </div>
-            </div>
-          </div>
+          </>
         ) : null}
 
         <input className="hidden" type="file" ref={fileRef} onChange={handleFileChange} />

@@ -43,7 +43,7 @@ export default function DeleteMsgPopup({ msg, close, time, deleteFunc }) {
         </div>
       </div>
       <button
-        className="border-[1px] bg-transparent border-[#4D96DA] absolute bottom-[5%] right-[25%] w-[80px] py-2 outline-none rounded-[5px] "
+        className="border-[1px] bg-transparent border-[#4D96DA] absolute bottom-[10%] right-[25%] w-[80px] py-2 outline-none rounded-[5px] "
         onClick={() => {
           close();
         }}
@@ -51,7 +51,7 @@ export default function DeleteMsgPopup({ msg, close, time, deleteFunc }) {
         Cancel
       </button>
       <button
-        className=" bg-[#DA4D4D]  absolute bottom-[5%] right-[8%] w-[80px] py-2 outline-none  rounded-[5px] flex flex-wrap justify-center content-center"
+        className=" bg-[#DA4D4D]  absolute bottom-[10%] right-[8%] w-[80px] py-2 outline-none  rounded-[5px] flex flex-wrap justify-center content-center border-[1px] border-transparent"
         onClick={async () => {
           setDeleting(true);
           await deleteFunc();

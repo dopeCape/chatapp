@@ -48,7 +48,6 @@ export default function ChatSelector() {
       setChat(chat_);
       setGroup(group_);
       setChannels(channel_);
-      console.log(group_);
     }
   }, [me, groupStore, chatStore, selectedWorkspace]);
 
@@ -102,6 +101,9 @@ export default function ChatSelector() {
     }
   };
   const WorkspacePopup = styled(Popup)`
+    &-overlay {
+      background: rgba(0, 0, 0, 0.6);
+    }
     &-content {
       border: none;
       height: 400px;
@@ -121,7 +123,7 @@ export default function ChatSelector() {
         <div className="w-full h-full flex  flex-col  bg-[#2f3137]   ">
           <div className="   h-[9%] w-full flex    ml-1  ">
             <div
-              className="text-[24px] text-[#F8F8F8] mt-3 ml-3 font-bold  cursor-pointer  "
+              className="text-[24px] text-[#F8F8F8] mt-3 ml-3 font-bold  cursor-pointer z-[100]  "
               onClick={() => {
                 setWorkSpaceOpen(!workspceOpen);
               }}
@@ -129,15 +131,18 @@ export default function ChatSelector() {
               {selectedWorkspace.name}
             </div>
             <i
-              class="fa-solid fa-chevron-down mt-6 m-2 font-bold cursor-pointer text-[#F8F8F8] text-[14px]"
+              class="fa-solid fa-chevron-down mt-6 m-2 font-bold cursor-pointer text-[#F8F8F8] text-[14px] z-[100]"
               onClick={() => {
                 setWorkSpaceOpen(!workspceOpen);
               }}
             ></i>
           </div>
           {workspceOpen ? (
-            <div className="w-[360px] h-[360px] absolute  z-[50] top-[8%]">
-              <WorkSpaceMenu />
+            <div>
+              <div className="w-[360px] h-[360px] absolute  z-[50] top-[8%]">
+                <WorkSpaceMenu />
+              </div>
+              <div className="fixed bg-black w-screen h-screen top-0 left-0 bg-opacity-25"></div>
             </div>
           ) : null}
           <div className="w-full border-[1px] border-[#353B43] h-0 "></div>

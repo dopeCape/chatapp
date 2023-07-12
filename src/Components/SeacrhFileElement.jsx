@@ -7,7 +7,6 @@ import { useUserStore } from '../Stores/MainStore';
 
 import { FileIcon, defaultStyles } from 'react-file-icon';
 import FloatingVideoPlayer from './FloatingVideoPlayer';
-import FloatingDocumentViewer from './FloatingDocViewer';
 const getDateFromDateTime = d => {
   let date = new Date(d);
   let month = date.toLocaleString('default', { month: 'short' });
@@ -16,7 +15,6 @@ const getDateFromDateTime = d => {
   let year = date.getFullYear();
   return `${month} ${dateN}, ${year}`;
 };
-
 export default function SeachFileElement({ msg }) {
   const [imgOpen, setImgOpen] = useState(false);
   let me = useUserStore(state => state.user);

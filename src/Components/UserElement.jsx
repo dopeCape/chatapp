@@ -26,11 +26,11 @@ export default function Useruser({
 
   const groupName = arr => {
     let name = 'Me';
-    let count = 0;
+    let count = 1;
     arr.forEach((element, index) => {
       if (count < 2) {
         if (element.user.user.id !== me.id) {
-          name = name + ',' + element.user.user.name;
+          name = name + ', ' + element.user.user.name;
           count = count + 1;
         }
         if (arr.length > 2 && count === 1) {
@@ -38,7 +38,7 @@ export default function Useruser({
       }
     });
     if (arr.length > 2) {
-      name = name + '+' + (arr.length - 2);
+      name = name + ' +' + (arr.length - 2);
     }
     return name;
   };
@@ -97,7 +97,7 @@ export default function Useruser({
 
       <div className=" cursor-pointer  ml-2 text-[#fbfbfb] relative text-[16px]">
         {fchat.groupChat ? (
-          <div className="relative bottom-1" style={{ fontWeight: `${fchat.unRead > 0 ? '700' : '400'}` }}>
+          <div className="relative bottom-1" style={{ fontWeight: `${fchat.unRead > 0 ? '900' : '400'}` }}>
             {fchat.groupChat.type === 'CHANNEL' ? (
               fchat.groupChat.name
             ) : (
@@ -105,18 +105,18 @@ export default function Useruser({
             )}
           </div>
         ) : (
-          <div className="relative bottom-1" style={{ fontWeight: `${fchat.unRead > 0 ? '700' : '400'}` }}>
+          <div className="relative bottom-1" style={{ fontWeight: `${fchat.unRead > 0 ? '900' : '400'}` }}>
             {fchat.friend.user.name}
           </div>
         )}
       </div>
       {fchat.unRead > 0 ? (
         fchat.unRead < 9 ? (
-          <div className="w-[30px] h-[20px] bg-[#DA4D4D] text-white rounded-[14px]  flex flex-wrap justify-center content-center   absolute right-[50%]">
+          <div className="w-[30px] h-[20px] bg-[#DA4D4D] text-white rounded-[14px]  flex flex-wrap justify-center content-center   absolute right-[20%]">
             {fchat.unRead}
           </div>
         ) : (
-          <div className="w-[30px] h-[20px] bg-[#DA4D4D] text-white rounded-[14px]  flex flex-wrap justify-center content-center   absolute right-[50%]">
+          <div className="w-[30px] h-[20px] bg-[#DA4D4D] text-white rounded-[14px]  flex flex-wrap justify-center content-center   absolute right-[20%]">
             9+
           </div>
         )

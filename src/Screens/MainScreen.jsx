@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
-
 import ChatSelector from '../Components/ChatSelector';
+import React, { useState, useEffect } from 'react';
 import UserProfile from '../Components/UserProfile';
 import ChatSection from '../Components/ChatSection';
 import lodadinGif from '../Ripple-1.3s-287px.svg';
@@ -76,18 +75,15 @@ export default function MainScreen() {
           }
         }, 3000);
         // ...
-        //
       } else {
         updateUser('logout');
         setAbly(null);
         localStorage.removeItem('token');
-        // User is signed out
-        // ...
       }
     });
   }, []);
   return (
-    <div className="w-full h-full bg-black_i_like flex  flex-wrap justify-center content-center max-h-screen max-w-screen overflow-hidden rounded-[20px] border-[2px] border-[#353b43] ">
+    <div className="w-full h-full bg-black_i_like flex  flex-wrap justify-center content-center max-h-screen max-w-screen overflow-hidden rounded-[20px] border-[2px] border-[#353b43]  outline-none">
       {user === null ? (
         <img src={lodadinGif} alt="loadin.." />
       ) : user === 'logout' ? (
@@ -107,7 +103,7 @@ export default function MainScreen() {
             <div className="h-full w-[21%]">
               <ChatSelector />
             </div>
-            <div className="h-full " style={{ width: `${profile !== null ? '50%' : '74%'}` }} >
+            <div className="h-full " style={{ width: `${profile !== null ? '50%' : '74%'}` }}>
               <ChatSection />
             </div>
             {profile !== null ? (

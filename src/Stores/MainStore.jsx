@@ -55,6 +55,28 @@ const useUserStore = create(
       set(() => ({
         workspace: user
       }));
+    },
+    removeUserFromWorkspace: (workspaceId, userId) => {
+      let user = get().user;
+      user.chatWorkSpaces.workspaces.forEach(wr => {
+        if (wr.id === workspaceId) {
+          wr.chatWorkSpace = wr.chatWorkSpace.filter(user_ => {
+            return userId !== user_.id;
+          });
+        }
+      });
+      set(() => ({
+        user: user
+      }));
+    },
+    removeWorkspace: w => {
+      let user = get().user;
+      user.chatWorkSpaces.workspaces = user.chatWorkSpaces.workspaces.filter(wr => {
+        return wr.id !== w;
+      });
+      set(() => ({
+        user: user
+      }));
     }
   })),
   { store: 'userStore' }
@@ -103,6 +125,15 @@ const useWorkSpaceStore = create(
       set(() => ({
         workspace: xwr
       }));
+    },
+    removeUser: userId => {
+      let workspace = get().workspace;
+      workspace.chatWorkSpace = workspace.chatWorkSpace.filter(user => {
+        return user.id !== userId;
+      });
+      set(() => ({
+        workspace: workspace
+      }));
     }
   }))
 );
@@ -125,7 +156,6 @@ const useChatStore = create(
         }
         return x;
       });
-
       set(() => ({
         chats: chats
       }));
@@ -215,6 +245,28 @@ const useChatStore = create(
       });
       set(() => ({
         chats: friends
+      }));
+    },
+    unfriend: (w, i) => {
+      let chats = get().chats;
+      chats = chats.filter(x => {
+        if (x.workspaceId === i) {
+          return x.friend.id !== w;
+        } else {
+          return true;
+        }
+      });
+      set(() => ({
+        chats: chats
+      }));
+    },
+    removeFriendsFromWorkspacce: w => {
+      let chats = get().chats;
+      chats = chats.filter(fr => {
+        return fr.workspaceId !== w;
+      });
+      set(() => ({
+        chats: chats
       }));
     }
   }))
@@ -362,6 +414,26 @@ const useGroupChatStore = create(
         }
       });
       set(state => ({
+        chats: chats
+      }));
+    },
+    changeAdmin: (w, i) => {
+      let chats = get().chats;
+      chats.forEach(chat => {
+        if (chat.groupChat.id === w) {
+          chat.groupChat.admin = i;
+        }
+      });
+      set(() => ({
+        chats: chats
+      }));
+    },
+    removeAllGroupFromWorkspace: w => {
+      let chats = get().chats;
+      chats = chats.filter(ch => {
+        return ch.groupChat.workspaceId !== w;
+      });
+      set(() => ({
         chats: chats
       }));
     }

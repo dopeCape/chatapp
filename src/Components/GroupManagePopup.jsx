@@ -11,14 +11,19 @@ import Cross from '../ph_x-bold.svg';
 import styled from '@emotion/styled';
 import Popup from 'reactjs-popup';
 
-import { useChatStore, useGroupChatStore, useSelectedChatStore, useUserStore } from '../Stores/MainStore';
+import {
+  useChatStore,
+  useGroupChatStore,
+  useSelectedChatStore,
+  useUserStore,
+  useWorkSpaceStore
+} from '../Stores/MainStore';
 import SeachFileElement from './SeacrhFileElement';
 import { fileSeacrh } from '../utils/helper';
 import DeleteUserPopup from './DeleteUserPopup';
 import AddUsersToGroupPopup from './AddUsersToGroupPopup';
-import { useStore } from 'zustand';
 
-export default function GroupManagePopup({ close, groupChat, type, useR, chat, id }) {
+export default function GroupManagePopup({ close, groupChat, type, useR, chat, id, chatId, friendId }) {
   const [selected, setSelected] = useState('A');
   const [allFiles, setallFiles] = useState([]);
   const [mute, setMute] = useState(false);
@@ -31,6 +36,7 @@ export default function GroupManagePopup({ close, groupChat, type, useR, chat, i
 
   let me = useUserStore(state => state.user);
   let user = useSelectedChatStore(state => state.user);
+  let workspace = useWorkSpaceStore(state => state.workspace);
   let chat_ = useChatStore(state => state.chats);
   let group_ = useGroupChatStore(state => state.chats);
 
@@ -67,6 +73,25 @@ export default function GroupManagePopup({ close, groupChat, type, useR, chat, i
     }
   }, [user, group_, chat_, type]);
   const accessToken = localStorage.getItem('token');
+  const handleUnfriend = async () => {
+    setDeleting(true);
+    await instance.post(
+      '/user/unfriend',
+      {
+        id: me.chatWorkSpaces.id,
+        chatId: chatId,
+        friendId: friendId,
+        workspaceId: workspace.id,
+        uid: me.id
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }
+    );
+    setDeleting(false);
+  };
   const handeleLeaveGroup = async () => {
     try {
       const msg = `${me.name} left`;
@@ -88,7 +113,6 @@ export default function GroupManagePopup({ close, groupChat, type, useR, chat, i
           }
         }
       );
-
       setDeleting(false);
     } catch (error) {
       console.log(error);
@@ -159,7 +183,9 @@ export default function GroupManagePopup({ close, groupChat, type, useR, chat, i
         {
           groupChatId: groupChat.groupChat.id,
           groupChatRefs,
-          users
+          users,
+          name: me.name,
+          groupName: groupChat.groupChat.name
         },
         {
           headers: {
@@ -232,13 +258,10 @@ export default function GroupManagePopup({ close, groupChat, type, useR, chat, i
       ) : null}
       {selected === 'A' ? (
         <div className="flex flex-col">
-          {' '}
           {type === 'G' ? (
             <div className="w-[90%] h-[80px] ml-8 bg-[#40434B] rounded-[10px] flex flex-col mt-12 ">
-              <div className="ml-5 mt-3 text-white font-[700]">
-                {groupChat.groupChat.type === 'CHANNEL' ? 'Created and managed by' : 'Created by'}
-              </div>
-              <div className="ml-6 text-[#B4B4B4] mt-2 text-[14px]">{groupChat.groupChat.admin.email}</div>
+              <div className="ml-5 mt-3 text-white font-[700]">Created by</div>
+              <div className="ml-5 text-[#B4B4B4] mt-2 text-[14px]">{groupChat.groupChat.admin.email}</div>
             </div>
           ) : (
             <div className="w-[90%] h-[100px] ml-8 bg-[#40434B] rounded-[10px] flex mt-16 flex-wrap content-center ">
@@ -270,7 +293,9 @@ export default function GroupManagePopup({ close, groupChat, type, useR, chat, i
                   if (groupChat.groupChat.admin.id !== me.id) {
                     handeleLeaveGroup();
                   } else if (groupChat.groupChat.type === 'CHANNEL' && groupChat.groupChat.admin.id === me.id) {
-                    handleDeleteGroup();
+                    if (groupChat.groupChat.name !== 'general') {
+                      handleDeleteGroup();
+                    }
                   }
                 }}
               >
@@ -304,10 +329,12 @@ export default function GroupManagePopup({ close, groupChat, type, useR, chat, i
             ) : (
               <button
                 className="bg-[#40434B] py-4 w-[48%] flex flex-wrap justify-center  rounded-[10px] outline-none"
-                disabled={true}
+                onClick={handleUnfriend}
               >
-                <img className="w-[20px] h-[20px] " src={Exit} alt="X" />
-                <div className="text-[#DA4D4D] tex-[18px] font-[700] ml-2">Delete Chat</div>
+                {deleting ? null : <img className="w-[20px] h-[20px] " src={Exit} alt="X" />}
+                <div className="text-[#DA4D4D] tex-[18px] font-[700] ml-2">
+                  {deleting ? <img src={Spinner} className="w-[25px] h-[25px] " alt="Delering.." /> : 'Delete Chat'}
+                </div>
               </button>
             )}
           </div>
@@ -316,10 +343,10 @@ export default function GroupManagePopup({ close, groupChat, type, useR, chat, i
                relative  `}
           >
             <div className="text-white ml-5 mt-5">Files</div>
-            <div className="flex bg-[#696D78] p-2 absolute right-[5%] top-[5%] rounded-[10px] w-[140px] ">
+            <div className="flex bg-[#696D78] p-2 absolute right-[5%] top-[5%] rounded-[10px] w-[180px] ">
               <img alt="" src={Search} className=" ml-1" />
               <input
-                className="bg-transparent outline-none w-[120px] text-white ml-1"
+                className="bg-transparent outline-none w-[160px] text-white ml-1"
                 placeholder="Find files"
                 value={search}
                 onChange={e => {

@@ -13,8 +13,6 @@ const properties = [
   'paddingTop',
   'paddingRight',
   'paddingBottom',
-  'paddingLeft',
-
   'fontStyle',
   'fontVariant',
   'fontWeight',
@@ -22,16 +20,12 @@ const properties = [
   'fontSize',
   'fontSizeAdjust',
   'lineHeight',
-  'fontFamily',
-
   'textAlign',
   'textTransform',
   'textIndent',
   'textDecoration',
-
   'letterSpacing',
   'wordSpacing',
-
   'tabSize',
   'MozTabSize'
 ];

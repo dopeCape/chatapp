@@ -9,6 +9,7 @@ import { useChannel } from '@ably-labs/react-hooks';
 import {
   useChatStore,
   useGroupChatStore,
+  useHistoryStore,
   useMsgesStore,
   useSelectedChatStore,
   useSelectedStore,
@@ -38,9 +39,18 @@ export default function SideBar({ setter, type }) {
   }
   const workspaceNameRef = useRef(null);
   const updateUser = useUserStore(state => state.updateUserState);
+  const removeWorkspace = useUserStore(state => state.removeWorkspace);
+  const removeFriendsFromWorkspace = useChatStore(state => state.removeFriendsFromWorkspacce);
+  const addNewHistoryEntry = useHistoryStore(state => state.addNewEntry);
+  const changeGroupChatAdmin = useGroupChatStore(state => state.changeAdmin);
+  const removeUserFromWorkspace = useUserStore(state => state.removeUserFromWorkspace);
+  const deleteAllGroupFromWorkSpace = useGroupChatStore(state => state.removeAllGroupFromWorkspace);
   const addWorkSpace = useUserStore(state => state.addWorkSpace);
   const setSelected = useSelectedStore(state => state.updateSelectedState);
   const groupChat = useGroupChatStore(state => state.chats);
+  const unfriend = useChatStore(state => state.unfriend);
+  const setSelectedWorkSpace = useWorkSpaceStore(state => state.setWorkSelectdSapce);
+  const removeUserFromSelectedWorkspace = useWorkSpaceStore(state => state.removeUser);
   const friends = useChatStore(state => state.chats);
   const updateSelectedWorkSpace = useWorkSpaceStore(state => state.updateSelectedWorkspace);
   const updateWorkspace = useUserStore(state => state.updateWorkspace);
@@ -171,6 +181,10 @@ export default function SideBar({ setter, type }) {
       }
     });
     my_channel.subscribe('new-memeber-group', msg => {
+      let history = msg.data.history;
+      let historyId = msg.data.historyId;
+      addNewHistoryEntry(historyId, history);
+
       msg.data.newUser.forEach(x => {
         addUserToGroup(x, msg.data.chatId);
       });
@@ -280,7 +294,7 @@ export default function SideBar({ setter, type }) {
         } else {
           inclrementGroupUnRead(data.data.chatId);
           groupChat.forEach(x => {
-            if (x.groupChat.id === data.data.chatId && selecteChat.chatId !== data.data.chatId) {
+            if (selecteChat && x.groupChat.id === data.data.chatId && selecteChat.chatId !== data.data.chatId) {
               if (!x.muted) {
                 playSound();
               }
@@ -320,6 +334,10 @@ export default function SideBar({ setter, type }) {
     });
 
     my_channel.subscribe('group-remove-member', data => {
+      let history = data.data.history;
+      let historyId = data.data.historyId;
+      addNewHistoryEntry(historyId, history);
+
       removeMemberFromGrup(data.data.groupId, data.data.groupChatRefId);
       updateGroupChat(data.data.msg, data.data.groupId);
       inclrementGroupUnRead(data.data.groupId);
@@ -334,6 +352,14 @@ export default function SideBar({ setter, type }) {
 
     my_channel.subscribe('group-delete', data => {
       console.log(data.data);
+      let history = data.data.history;
+      let historyId = data.data.historyId;
+      addNewHistoryEntry(historyId, history);
+      if (selecteChat.groupChat) {
+        if (selecteChat.groupChat.id === data.data.groupChatId) {
+          updateSelectedChatStore(null);
+        }
+      }
       deleteGroup(data.data.groupChatId);
     });
 
@@ -346,8 +372,61 @@ export default function SideBar({ setter, type }) {
       updateWorkspace(id, workspace_);
     });
 
+    my_channel.subscribe('unfriend', data => {
+      let workspaceId = data.data.workspaceId;
+      let userId = data.data.chatWorkspaceId;
+      if (selecteChat.id === userId) {
+        updateSelectedChatStore(null);
+      }
+      unfriend(userId, workspaceId);
+    });
+    my_channel.subscribe('workspace-remove', data => {
+      let friendId = data.data.friendId;
+      let userId = data.data.id;
+      let workspaceId = data.data.workspaceId;
+      let groupChats = data.data.groupChats;
+      console.log(groupChats);
+      if (friendId !== undefined) {
+        unfriend(friendId, workspaceId);
+      }
+      if (!selecteChat.groupChat) {
+        if (selecteChat.id === userId && selectedWorkspace.id === workspaceId) {
+          updateSelectedChatStore(null);
+        }
+      }
+      groupChats.forEach(groupChat => {
+        removeMemberFromGrup(groupChat.groupChatId, groupChat.groupChatRefId);
+        updateGroupChat(groupChat.msg, groupChat.groupChatId);
+        if (groupChat.admin) {
+          console.log(groupChat.admin);
+          changeGroupChatAdmin(groupChat.groupChatId, groupChat.admin);
+        }
+      });
+      if (selectedWorkspace.id === workspaceId) {
+        removeUserFromSelectedWorkspace(userId);
+      }
+      removeUserFromWorkspace(workspaceId, userId);
+    });
+    my_channel.subscribe('workspace-delete', data => {
+      let workspaceId = data.data.workspaceId;
+      if (selectedWorkspace.id === workspaceId) {
+        setSelectedWorkSpace(null);
+        if (selecteChat.groupChat) {
+          if (selecteChat.groupChat.workspaceId === workspaceId) {
+            updateSelectedChatStore(null);
+          }
+        }
+      }
+      removeFriendsFromWorkspace(workspaceId);
+      removeWorkspace(workspaceId);
+      deleteAllGroupFromWorkSpace(workspaceId);
+    });
+
     return () => {
       my_channel.unsubscribe('send-request');
+      my_channel.unsubscribe('unfriend');
+      my_channel.unsubscribe('workspace-delete');
+      my_channel.unsubscribe('workspace-remove');
       my_channel.unsubscribe('workspace-update');
       my_channel.unsubscribe('group-delete');
       my_channel.unsubscribe('new-memeber-workspace');
@@ -392,7 +471,6 @@ export default function SideBar({ setter, type }) {
         <div className="dark:text-white text-[18px] font-bold ml-5 mt-3">No workspaces</div>
       )}
       <div></div>
-
       {me.admin ? (
         <button
           className="rounded-[10px] bg-[#85858526] h-[60px] w-[60px] ml-4 pt-1    "

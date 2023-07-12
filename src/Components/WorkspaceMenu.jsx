@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-
 import { useWorkSpaceStore, useUserStore } from '../Stores/MainStore';
 import styled from '@emotion/styled';
 import Popup from 'reactjs-popup';
@@ -7,24 +6,54 @@ import InviteToWorkcpace from './InviteToWorkcpacePopup';
 import EditWorkSpace from './EditWorkSpace';
 import NewGroup from './NewGroup';
 import History from './History';
+import { instance } from '../axios';
+import RemoveFromWorkspace from './RemoveFromWorskspace';
 export default function WorkSpaceMenu() {
   const me = useUserStore(state => state.user);
+  const [conformRemovePopupOpen, setConformRemovePopupOpen] = useState(false);
   const workspace = useWorkSpaceStore(state => state.workspace);
   const [editWorkspaceOpen, setEditWorkspaceOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-
   const [addUserToWorkspaceOpen, setAddUserToWorkspaceOpen] = useState(false);
-
   const [createChannelOpen, SetCreateChannelOpen] = useState(false);
+  const accessToken = localStorage.getItem('token');
+  const handleSignOutOfWorkspce = async () => {
+    try {
+      await instance.post(
+        '/workspace/removeuser',
+        {
+          id: me.chatWorkSpaceId,
+          workspaceId: workspace.id
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        }
+      );
+    } catch (error) {
+      throw error;
+    }
+  };
   const EditWorkspcePopup = styled(Popup)`
     &-content {
       border: none;
-      height: 532px;
+      height: 550px;
       padding: 0;
       width: 721px;
       border-radius: 10px;
     }
   `;
+  const RemoveFromWorkspacePopup = styled(Popup)`
+    &-content {
+      border: none;
+      height: 180px;
+      padding: 0;
+      width: 400px;
+      border-radius: 10px;
+    }
+  `;
+
   const AddUserToWorkspacePopup = styled(Popup)`
     &-content {
       border: none;
@@ -129,8 +158,35 @@ export default function WorkSpaceMenu() {
         </div>
       ) : null}
 
-      <div className="w-[80%]  h-0 border-[1px] border-[#616061] ml-8  mt-auto "></div>
-      <div className="ml-8 mb-8 mt-5 text-[#DA4D4D] cursor-pointer">Sign out of {workspace.name}</div>
+      {!me.admin ? (
+        <>
+          <div className="w-[80%]  h-0 border-[1px] border-[#616061] ml-8  mt-auto "></div>
+          <div
+            className="ml-8 mb-8 mt-5 text-[#DA4D4D] cursor-pointer"
+            onClick={async () => {
+              setConformRemovePopupOpen(true);
+            }}
+          >
+            Sign out of {workspace.name}
+          </div>
+        </>
+      ) : (
+        <div className=" py-3 pl-8   cursor-pointer hover:bg-[#4D96DA]" onClick={() => { }}>
+          Manage users
+        </div>
+      )}
+      <RemoveFromWorkspacePopup
+        open={conformRemovePopupOpen}
+        onClose={() => {
+          setConformRemovePopupOpen(false);
+        }}
+        modal
+        position="center center"
+        closeOnEscape={false}
+        closeOnDocumentClick={false}
+      >
+        {close => <RemoveFromWorkspace close={close} workspaceName={workspace.name} func={handleSignOutOfWorkspce} />}
+      </RemoveFromWorkspacePopup>
     </div>
   );
 }
