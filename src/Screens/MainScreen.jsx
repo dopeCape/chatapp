@@ -91,7 +91,7 @@ export default function MainScreen() {
       ) : (
         <div className="w-full h-full  flex felx-wrap  ">
           {profile !== null ? (
-            <div className="w-[3%] h-full   relative">
+            <div className="w-[3%] h-full relative">
               <div className="w-full h-full top-0 bg-black_i_like"></div>
               <SideBar setter={setScreen} type="half" />
             </div>
