@@ -73,7 +73,7 @@ export default function MainScreen() {
           if (user.data.user_data.chatWorkSpaces.workspaces[0]) {
             setWorkspce(user.data.user_data.chatWorkSpaces.workspaces[0]);
           }
-        }, 3000);
+        }, 12000);
         // ...
       } else {
         updateUser('logout');

@@ -1,112 +1,108 @@
-import React, { useRef, useState } from "react";
-import Avatar from "avatar-initials";
-import { auth } from "../firebase";
+import React, { useRef, useState } from 'react';
+import Avatar from 'avatar-initials';
+import { auth } from '../firebase';
 
 import {
   signInWithPopup,
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  getAuth,
-} from "firebase/auth";
-import { instance } from "../axios";
-import { useUserStore } from "../Stores/MainStore";
+  getAuth
+} from 'firebase/auth';
+import { instance } from '../axios';
+import { useUserStore } from '../Stores/MainStore';
 
 function LoginScreen() {
   const [login, setLogin] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const userRef = useRef();
   const passRef = useRef();
   const retypePassRef = useRef();
 
   const emailRef = useRef();
 
-  const updateUser = useUserStore((state) => state.updateUserState);
+  const updateUser = useUserStore(state => state.updateUserState);
   let provide = new GoogleAuthProvider();
 
   const handleGauthLgin = () => {
     signInWithPopup(auth, provide)
-      .then(async (user) => {
+      .then(async user => {
         let user_;
 
-        if (user.providerId === "google.com") {
+        if (user.providerId === 'google.com') {
           user_ = {
             fireBaseid: user.user.uid,
             email: user.user.email,
             name: user.user.displayName,
-            profilePic: user.user.photoURL,
+            profilePic: user.user.photoURL
           };
         }
         try {
           let res = await instance.post(
-            "/user/gauth",
+            '/user/gauth',
             {
-              ...user_,
+              ...user_
             },
             {
               headers: {
-                authorization: `Bearer ${user.user.accessToken}`,
-              },
+                authorization: `Bearer ${user.user.accessToken}`
+              }
             }
           );
 
-          localStorage.setItem("token", user.user.accessToken);
+          localStorage.setItem('token', user.user.accessToken);
           updateUser(null);
         } catch (error) {
           console.error(error);
         }
       })
-      .catch((e) => console.log(e));
+      .catch(e => console.log(e));
   };
   const handlePasswordSignUp = async () => {
-    setError("");
+    setError('');
     const email = emailRef.current.value;
     const rePass = retypePassRef.current.value;
     const password = passRef.current.value;
     try {
-      let invite = await instance.post("/user/chelckinvite", {
-        email: email,
+      let invite = await instance.post('/user/chelckinvite', {
+        email: email
       });
       if (rePass === password) {
-        if (invite.data.msg === "nope") {
-          setError("No invite found");
+        if (false) {
         } else {
           try {
             const auth = getAuth();
             createUserWithEmailAndPassword(auth, email, password)
-              .then(async (userCredential) => {
+              .then(async userCredential => {
                 // Signed in
                 //
                 const user = userCredential.user;
                 let user_;
 
                 let profilePic = Avatar.gravatarUrl({
-                  initials: user?.userName,
+                  initials: user?.userName
                 });
-                if (user.providerId === "firebase") {
+                if (user.providerId === 'firebase') {
                   user_ = {
                     fireBaseid: user.uid,
                     email: user.email,
                     name: userRef.current.value,
-                    profilePic: profilePic,
+                    profilePic: profilePic
                   };
                 }
                 try {
                   let res = await instance.post(
-                    "/user",
+                    '/user',
                     {
-                      ...user_,
+                      ...user_
                     },
                     {
                       headers: {
-                        authorization: `Bearer ${userCredential.user.accessToken}`,
-                      },
+                        authorization: `Bearer ${userCredential.user.accessToken}`
+                      }
                     }
                   );
-                  localStorage.setItem(
-                    "token",
-                    userCredential.user.accessToken
-                  );
+                  localStorage.setItem('token', userCredential.user.accessToken);
                   updateUser(null);
                 } catch (error) {
                   console.error(error);
@@ -114,23 +110,22 @@ function LoginScreen() {
 
                 // ...
               })
-              .catch((error) => {
+              .catch(error => {
                 const errorCode = error.code;
                 const errorMessage = error.message;
                 console.log(errorCode);
-                if (errorCode === "auth/email-already-in-use") {
-                  setError("User already exists.Please Login.");
+                if (errorCode === 'auth/email-already-in-use') {
+                  setError('User already exists.Please Login.');
                 }
-                if (errorCode === "auth/missing-password") {
-                  setError("Password cannot be empty.");
+                if (errorCode === 'auth/missing-password') {
+                  setError('Password cannot be empty.');
                 }
-                if (errorCode === "auth/invalid-email") {
-                  setError("Invalid Email. ");
+                if (errorCode === 'auth/invalid-email') {
+                  setError('Invalid Email. ');
                 }
-                if (errorCode === "auth/weak-password") {
-                  setError("Password has to be atleast 6 digits.");
+                if (errorCode === 'auth/weak-password') {
+                  setError('Password has to be atleast 6 digits.');
                 }
-
                 // ..
               });
           } catch (error) {
@@ -138,7 +133,7 @@ function LoginScreen() {
           }
         }
       } else {
-        setError("Passwords do not match");
+        setError('Passwords do not match');
       }
     } catch (error) {
       console.log(error);
@@ -146,29 +141,29 @@ function LoginScreen() {
   };
 
   const handlePasswordLogin = () => {
-    setError("");
+    setError('');
     const email = emailRef.current.value;
 
     const password = passRef.current.value;
     const auth = getAuth();
     signInWithEmailAndPassword(auth, email, password)
-      .then((userCred) => {
+      .then(userCred => {
         const user = userCred.user;
 
         updateUser(null);
       })
-      .catch((error) => {
+      .catch(error => {
         const errorCode = error.code;
         const errorMessage = error.message;
         console.log(errorCode);
-        if (errorCode === "auth/invalid-email") {
-          setError("Invalid Email.");
+        if (errorCode === 'auth/invalid-email') {
+          setError('Invalid Email.');
         }
-        if (errorCode === "auth/wrong-password") {
-          setError("Invalid Password.");
+        if (errorCode === 'auth/wrong-password') {
+          setError('Invalid Password.');
         }
-        if (errorCode === "auth/missing-password") {
-          setError("Password cannot be empty.");
+        if (errorCode === 'auth/missing-password') {
+          setError('Password cannot be empty.');
         }
       });
   };
@@ -226,7 +221,7 @@ function LoginScreen() {
             <span
               className="text-white ml-2 cursor-pointer"
               onClick={() => {
-                setError("");
+                setError('');
                 setLogin(false);
               }}
             >
@@ -239,7 +234,7 @@ function LoginScreen() {
             <span
               className="text-white ml-2 cursor-pointer"
               onClick={() => {
-                setError("");
+                setError('');
                 setLogin(true);
               }}
             >
@@ -248,9 +243,7 @@ function LoginScreen() {
           </div>
         )}
 
-        <div className="font-extrabold relative top-[5%] text-red-800 text-[20px] ">
-          {error}
-        </div>
+        <div className="font-extrabold relative top-[5%] text-red-800 text-[20px] ">{error}</div>
       </div>
     </div>
   );

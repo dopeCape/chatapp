@@ -9,13 +9,10 @@ import WorkSpaceMenu from './WorkspaceMenu';
 
 export default function ChatSelector() {
   const [list, setList] = useState([]);
-
   const [back, setBack] = useState(false);
-
-  let me = useUserStore(state => state.user);
   let chatStore = useChatStore(state => state.chats);
-
   let groupStore = useGroupChatStore(state => state.chats);
+  let me = useUserStore(state => state.user);
   let selectedWorkspace = useWorkSpaceStore(state => state.workspace);
 
   const [chat, setChat] = useState([]);
