@@ -1,6 +1,1 @@
-<svg width="17" height="18" viewBox="0 0 17 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g id="file">
-<path id="Vector" d="M9.20898 1.5H4.25065C3.87493 1.5 3.51459 1.65804 3.24892 1.93934C2.98324 2.22064 2.83398 2.60218 2.83398 3V15C2.83398 15.3978 2.98324 15.7794 3.24892 16.0607C3.51459 16.342 3.87493 16.5 4.25065 16.5H12.7507C13.1264 16.5 13.4867 16.342 13.7524 16.0607C14.0181 15.7794 14.1673 15.3978 14.1673 15V6.75L9.20898 1.5Z" stroke="#F8F8F8" stroke-linecap="round" stroke-linejoin="round"/>
-<path id="Vector_2" d="M9.20898 1.5V6.75H14.1673" stroke="#F8F8F8" stroke-linecap="round" stroke-linejoin="round"/>
-</g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="17" height="18" fill="none" viewBox="0 0 17 18"><g id="file"><path id="Vector" stroke="#F8F8F8" stroke-linecap="round" stroke-linejoin="round" d="M9.20898 1.5H4.25065C3.87493 1.5 3.51459 1.65804 3.24892 1.93934C2.98324 2.22064 2.83398 2.60218 2.83398 3V15C2.83398 15.3978 2.98324 15.7794 3.24892 16.0607C3.51459 16.342 3.87493 16.5 4.25065 16.5H12.7507C13.1264 16.5 13.4867 16.342 13.7524 16.0607C14.0181 15.7794 14.1673 15.3978 14.1673 15V6.75L9.20898 1.5Z"/><path id="Vector_2" stroke="#F8F8F8" stroke-linecap="round" stroke-linejoin="round" d="M9.20898 1.5V6.75H14.1673"/></g></svg>
